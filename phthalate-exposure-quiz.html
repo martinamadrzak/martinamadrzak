@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phthalate Exposure Estimator</title>
+<style>
+:root {
+  --bg: #f7f8fc;
+  --card: #ffffff;
+  --primary: #4f46e5;
+  --primary-light: #ede9fe;
+  --primary-dark: #3730a3;
+  --rose: #e11d48;
+  --rose-light: #fff1f2;
+  --rose-mid: #fda4af;
+  --text: #1e1b4b;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --green: #10b981; --green-bg: #ecfdf5;
+  --yellow: #d97706; --yellow-bg: #fffbeb;
+  --orange: #ea580c; --orange-bg: #fff7ed;
+  --red: #dc2626; --red-bg: #fef2f2;
+  --blue: #2563eb; --blue-bg: #eff6ff;
+  --radius: 14px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; padding: 0 0 80px;
+}
+
+/* ── TOP NAV ──────────────────────────────────────────────────────── */
+.topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 20px 0;
+  position: sticky; top: 0; z-index: 100;
+}
+.topbar h1 { font-size: 1.05rem; font-weight: 800; color: var(--primary); letter-spacing: -0.01em; }
+.topbar p  { font-size: 0.75rem; color: var(--muted); margin-bottom: 14px; }
+.tabs { display: flex; gap: 4px; }
+.tab-btn {
+  padding: 9px 18px;
+  border: none; background: none;
+  font-size: 0.88rem; font-weight: 600;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.tab-btn.active       { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-btn.active.rose  { color: var(--rose);    border-bottom-color: var(--rose); }
+
+/* ── LAYOUT ───────────────────────────────────────────────────────── */
+.page { display: none; padding: 20px 16px; max-width: 700px; margin: 0 auto; }
+.page.active { display: block; }
+
+/* ── SECTIONS ─────────────────────────────────────────────────────── */
+.section {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 22px 20px; margin-bottom: 16px;
+}
+.section-title {
+  font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--primary); margin-bottom: 14px;
+}
+.section-title.rose { color: var(--rose); }
+
+/* ── FORM ELEMENTS ────────────────────────────────────────────────── */
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+label.fl { display: block; font-size: .9rem; font-weight: 600; margin-bottom: 6px; }
+label.fl .hint { font-weight: 400; color: var(--muted); font-size: .8rem; }
+input[type="number"], select {
+  width: 100%; padding: 10px 12px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: .93rem; color: var(--text); background: var(--bg);
+  transition: border-color .15s; appearance: none;
+}
+input[type="number"]:focus, select:focus { outline: none; border-color: var(--primary); background:#fff; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* chips */
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip input { display: none; }
+.chip label {
+  padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 999px;
+  font-size: .83rem; font-weight: 500; cursor: pointer;
+  background: var(--bg); color: var(--muted); transition: all .15s; display: block; margin: 0;
+}
+.chip input:checked + label { background: var(--primary-light); border-color: var(--primary); color: var(--primary); font-weight: 700; }
+.chip input:checked + label.rose-chip { background: var(--rose-light); border-color: var(--rose); color: var(--rose); }
+
+/* sliders */
+.slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
+.slider-row:last-child { margin-bottom: 0; }
+.slider-label { flex: 0 0 150px; font-size: .86rem; line-height: 1.3; }
+.slider-label small { display: block; color: var(--muted); font-size: .73rem; }
+input[type="range"] { flex: 1; accent-color: var(--primary); height: 6px; cursor: pointer; }
+input[type="range"].rose { accent-color: var(--rose); }
+.slider-val { flex: 0 0 32px; text-align: right; font-size: .86rem; font-weight: 700; color: var(--primary); }
+.slider-val.rose { color: var(--rose); }
+
+/* checkboxes */
+.check-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 10px; cursor: pointer;
+}
+.check-row:last-child { margin-bottom: 0; }
+.check-row input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--primary); margin-top: 2px; flex-shrink: 0; cursor: pointer; }
+.check-row input[type="checkbox"].rose { accent-color: var(--rose); }
+.check-row span { font-size: .88rem; line-height: 1.4; }
+.check-row span small { display: block; color: var(--muted); font-size: .75rem; }
+
+/* buttons */
+.calc-btn {
+  display: block; width: 100%; padding: 15px;
+  background: var(--primary); color: #fff; border: none;
+  border-radius: var(--radius); font-size: 1rem; font-weight: 700;
+  cursor: pointer; transition: opacity .15s, transform .1s; letter-spacing: .02em;
+}
+.calc-btn:hover { opacity: .9; transform: translateY(-1px); }
+.calc-btn.rose { background: var(--rose); }
+
+/* ── RESULTS SHARED ──────────────────────────────────────────────── */
+.results { display: none; }
+.result-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px 20px; margin-bottom: 16px; text-align: center;
+}
+.dose-number { font-size: 2.8rem; font-weight: 800; line-height: 1; margin: 8px 0 4px; }
+.dose-unit { font-size: .85rem; color: var(--muted); margin-bottom: 14px; }
+.risk-badge {
+  display: inline-block; padding: 5px 18px; border-radius: 999px;
+  font-size: .83rem; font-weight: 800; letter-spacing: .05em; margin-bottom: 12px;
+}
+.risk-low  { background: var(--green-bg); color: var(--green); }
+.risk-mod  { background: var(--yellow-bg); color: var(--yellow); }
+.risk-high { background: var(--orange-bg); color: var(--orange); }
+.risk-vhi  { background: var(--red-bg); color: var(--red); }
+
+.bar-wrap { max-width: 420px; margin: 0 auto 14px; }
+.bar-labels { font-size: .75rem; color: var(--muted); margin-bottom: 3px; display: flex; justify-content: space-between; }
+.bar-track { height: 12px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 999px; transition: width .8s ease; }
+
+.sources-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 8px; }
+.src-item { background: var(--bg); border-radius: 10px; padding: 10px 12px; font-size: .8rem; }
+.src-name { font-weight: 600; }
+.src-val  { color: var(--primary); font-weight: 700; }
+.src-pct  { color: var(--muted); font-size: .72rem; }
+
+.harm-list, .tip-list { list-style: none; }
+.harm-item, .tip-item {
+  display: flex; gap: 11px; padding: 11px 0;
+  border-bottom: 1px solid var(--border); align-items: flex-start;
+}
+.harm-item:last-child, .tip-item:last-child { border-bottom: none; }
+.harm-icon, .tip-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+.harm-text h4 { font-size: .9rem; font-weight: 700; margin-bottom: 2px; }
+.harm-text p  { font-size: .81rem; color: var(--muted); line-height: 1.45; }
+.tip-item span { font-size: .86rem; line-height: 1.4; }
+.flag {
+  display: inline-block; padding: 2px 7px; border-radius: 4px;
+  font-size: .69rem; font-weight: 700; margin-left: 5px; vertical-align: middle;
+}
+.flag-you { background: var(--red-bg);  color: var(--red); }
+.flag-gen { background: var(--blue-bg); color: var(--blue); }
+
+.sources-box {
+  background: var(--bg); border-radius: 10px; padding: 13px 15px;
+  font-size: .76rem; color: var(--muted); line-height: 1.6;
+}
+.sources-box strong { display: block; color: var(--text); margin-bottom: 4px; }
+.disclaimer { font-size: .75rem; color: var(--muted); line-height: 1.5; text-align: center; margin-top: 10px; }
+
+/* ── PRENATAL SPECIFIC ─────────────────────────────────────────────── */
+
+/* trimester timeline */
+.timeline {
+  display: flex; gap: 0; margin: 14px 0 6px;
+  border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
+}
+.tphase {
+  flex: 1; padding: 12px 8px; text-align: center;
+  font-size: .76rem; line-height: 1.35;
+  border-right: 1px solid var(--border); background: var(--bg);
+  transition: background .2s;
+}
+.tphase:last-child { border-right: none; }
+.tphase.active-phase { background: var(--rose-light); }
+.tphase .phase-name { font-weight: 800; font-size: .8rem; color: var(--rose); display: block; margin-bottom: 3px; }
+.tphase .phase-weeks { color: var(--muted); font-size: .7rem; display: block; margin-bottom: 5px; }
+.tphase .phase-risk { font-size: .71rem; color: var(--text); }
+
+/* outcome card grid */
+.outcome-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.outcome-card {
+  background: var(--bg); border-radius: 12px; padding: 14px;
+  border: 1px solid var(--border);
+}
+.outcome-card .oc-label { font-size: .77rem; color: var(--muted); font-weight: 500; margin-bottom: 4px; }
+.outcome-card .oc-or   { font-size: 1.35rem; font-weight: 800; color: var(--rose); line-height: 1; }
+.outcome-card .oc-desc { font-size: .73rem; color: var(--muted); margin-top: 3px; line-height: 1.35; }
+.outcome-card .oc-src  { font-size: .68rem; color: #a78bfa; margin-top: 4px; font-style: italic; }
+
+/* biomarker reference */
+.biom-table { width: 100%; border-collapse: collapse; font-size: .78rem; margin-top: 8px; }
+.biom-table th { background: var(--primary-light); color: var(--primary); font-weight: 700; padding: 7px 10px; text-align: left; }
+.biom-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+.biom-table tr:last-child td { border-bottom: none; }
+.biom-table tr:nth-child(even) td { background: #fafafa; }
+
+/* info callout */
+.callout {
+  border-radius: 10px; padding: 13px 15px; font-size: .83rem;
+  line-height: 1.5; margin: 10px 0;
+}
+.callout.info    { background: var(--blue-bg); border-left: 4px solid var(--blue); color: #1e40af; }
+.callout.warning { background: var(--rose-light); border-left: 4px solid var(--rose); color: #9f1239; }
+.callout.tip     { background: var(--green-bg); border-left: 4px solid var(--green); color: #064e3b; }
+.callout strong  { display: block; font-weight: 700; margin-bottom: 3px; }
+
+/* what to tell dr */
+.doctor-list { list-style: none; }
+.doctor-item {
+  display: flex; gap: 10px; padding: 9px 0;
+  border-bottom: 1px solid var(--border); font-size: .85rem; align-items: flex-start;
+}
+.doctor-item:last-child { border-bottom: none; }
+.doctor-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rose); flex-shrink: 0; margin-top: 5px; }
+
+/* carousel */
+.carousel { position: relative; }
+.carousel-track { overflow: hidden; }
+.carousel-slide { display: none; }
+.carousel-slide.active { display: block; }
+.carousel-card {
+  background: #fff1f2; border-radius: 12px; padding: 18px 16px;
+  border-left: 4px solid #fb7185; min-height: 110px;
+}
+.carousel-card .cc-num  { font-size: .7rem; color: #be123c; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.carousel-card .cc-title { font-size: .93rem; font-weight: 800; color: #be123c; margin-bottom: 8px; line-height: 1.2; }
+.carousel-card .cc-body  { font-size: .82rem; color: #374151; line-height: 1.55; }
+.carousel-card .cc-cite  { font-size: .72rem; color: #9ca3af; margin-top: 8px; font-style: italic; }
+.carousel-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px; gap: 8px;
+}
+.carousel-btn {
+  background: var(--rose-light); border: 1.5px solid var(--rose-mid);
+  color: var(--rose); border-radius: 8px; padding: 6px 14px;
+  font-size: .82rem; font-weight: 700; cursor: pointer; transition: background .15s;
+  white-space: nowrap;
+}
+.carousel-btn:hover { background: var(--rose-mid); color: #fff; }
+.carousel-btn:disabled { opacity: .35; cursor: default; }
+.carousel-dots { display: flex; gap: 5px; flex: 1; justify-content: center; }
+.carousel-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--rose-mid); cursor: pointer; transition: background .15s;
+}
+.carousel-dot.active { background: var(--rose); }
+
+/* outcome cards — plain language */
+.outcome-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.oc2 { background: var(--bg); border-radius: 12px; padding: 14px; border: 1px solid var(--border); }
+.oc2-icon { font-size: 1.3rem; margin-bottom: 6px; }
+.oc2-title { font-size: .86rem; font-weight: 800; color: var(--text); margin-bottom: 5px; line-height: 1.2; }
+.oc2-plain { font-size: .8rem; color: #374151; line-height: 1.5; }
+.oc2-stat { font-size: .72rem; color: var(--muted); margin-top: 6px; font-style: italic; }
+
+/* disparity note */
+.disparity-note {
+  background: #faf5ff; border: 1px solid #c4b5fd; border-radius: 10px;
+  padding: 12px 15px; font-size: .8rem; color: #5b21b6; line-height: 1.5; margin-top: 10px;
+}
+.disparity-note strong { display: block; margin-bottom: 3px; }
+
+@media (max-width: 520px) {
+  .row2 { grid-template-columns: 1fr; }
+  .sources-grid { grid-template-columns: 1fr; }
+  .outcome-grid { grid-template-columns: 1fr; }
+  .slider-label { flex: 0 0 120px; }
+  .dose-number { font-size: 2.2rem; }
+  .timeline { flex-direction: column; }
+  .tphase { border-right: none; border-bottom: 1px solid var(--border); }
+  .tphase:last-child { border-bottom: none; }
+}
+
+/* ── PK FLOW DIAGRAM ──────────────────────────────────────── */
+.pk-flow { display:flex; flex-direction:column; align-items:center; gap:0; margin-top:10px; }
+.pk-box { background:var(--primary-light); border:1.5px solid var(--primary); border-radius:10px; padding:10px 16px; text-align:center; min-width:180px; max-width:260px; }
+.pk-box.fetal  { background:var(--rose-light); border-color:var(--rose-mid); }
+.pk-box.kidney { background:#f0fdf4; border-color:var(--green); }
+.pk-box-label  { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:3px; }
+.pk-box-val    { font-size:1rem; font-weight:800; color:var(--primary); }
+.pk-box.fetal .pk-box-val  { color:var(--rose); }
+.pk-box.kidney .pk-box-val { color:var(--green); }
+.pk-arrow  { font-size:.9rem; color:var(--muted); margin:5px 0; text-align:center; }
+.pk-split  { display:flex; gap:16px; justify-content:center; width:100%; flex-wrap:wrap; }
+.pk-split-arm { display:flex; flex-direction:column; align-items:center; }
+.pk-note   { font-size:.7rem; color:var(--muted); margin-top:3px; }
+.pk-meta   { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; justify-content:center; }
+.pk-chip   { background:var(--bg); border:1px solid var(--border); border-radius:20px; padding:4px 11px; font-size:.76rem; color:var(--text); }
+.pk-chip strong { color:var(--primary); }
+
+/* ── WHAT-IF SANDBOX ──────────────────────────────────────── */
+.sandbox-score { display:flex; align-items:center; gap:18px; margin-bottom:18px; flex-wrap:wrap; background:var(--bg); border-radius:10px; padding:14px; }
+.sb-score-col  { text-align:center; }
+.sb-hi-label   { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:2px; }
+.sb-hi-now     { font-size:2rem; font-weight:900; }
+.sb-arrow      { font-size:1.4rem; color:var(--muted); }
+.sb-hi-new     { font-size:2rem; font-weight:900; }
+.sb-pct-badge  { font-size:.8rem; font-weight:700; color:var(--green); background:var(--green-bg); border-radius:20px; padding:3px 10px; display:none; }
+.sandbox-toggle { display:flex; align-items:flex-start; gap:14px; padding:13px 0; border-bottom:1px solid var(--border); }
+.sandbox-toggle:last-child { border-bottom:none; }
+.sb-tinfo { flex:1; }
+.sb-ttitle { font-size:.88rem; font-weight:600; color:var(--text); }
+.sb-tsub   { font-size:.76rem; color:var(--muted); margin-top:3px; line-height:1.45; }
+.sb-timpact { font-size:.76rem; color:var(--green); font-weight:700; margin-top:4px; display:none; }
+.sb-switch { position:relative; width:44px; height:24px; flex-shrink:0; margin-top:2px; }
+.sb-switch input { opacity:0; width:0; height:0; }
+.sb-slider { position:absolute; inset:0; background:#d1d5db; border-radius:24px; cursor:pointer; transition:background .2s; }
+.sb-slider::before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.sb-switch input:checked + .sb-slider { background:var(--green); }
+.sb-switch input:checked + .sb-slider::before { transform:translateX(20px); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ TOP NAV ═══════════════════ -->
+<div class="topbar">
+  <h1>Phthalate Exposure Estimator</h1>
+  <p>Educational tool based on peer-reviewed research &nbsp;·&nbsp; Not a medical diagnostic</p>
+  <div class="tabs">
+    <button class="tab-btn active rose" onclick="switchTab('prenatal',this)">Prenatal &amp; Maternal Focus</button>
+    <button class="tab-btn" onclick="switchTab('general',this)">General Estimator</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 1 — GENERAL ESTIMATOR
+═══════════════════════════════════════════════════ -->
+<div id="page-general" class="page">
+
+  <!-- ABOUT YOU -->
+  <div class="section" style="margin-top:20px">
+    <div class="section-title">About You</div>
+    <div class="row2">
+      <div class="field"><label class="fl">Age <span class="hint">(years)</span></label>
+        <input type="number" id="g-age" min="1" max="100" placeholder="e.g. 32"></div>
+      <div class="field"><label class="fl">Body weight <span class="hint">(kg)</span></label>
+        <input type="number" id="g-weight" min="3" max="300" placeholder="e.g. 70"></div>
+    </div>
+    <div class="field">
+      <label class="fl">Biological sex</label>
+      <div class="chips">
+        <span class="chip"><input type="radio" name="g-sex" id="gm" value="male"><label for="gm">Male</label></span>
+        <span class="chip"><input type="radio" name="g-sex" id="gf" value="female"><label for="gf">Female</label></span>
+        <span class="chip"><input type="radio" name="g-sex" id="go" value="other" checked><label for="go">Prefer not to say</label></span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Life stage</label>
+      <div class="chips">
+        <span class="chip"><input type="radio" name="g-stage" id="gsc" value="child"><label for="gsc">Child (2–12)</label></span>
+        <span class="chip"><input type="radio" name="g-stage" id="gst" value="teen"><label for="gst">Teenager (13–17)</label></span>
+        <span class="chip"><input type="radio" name="g-stage" id="gsa" value="adult" checked><label for="gsa">Adult (18–64)</label></span>
+        <span class="chip"><input type="radio" name="g-stage" id="gss" value="senior"><label for="gss">Senior (65+)</label></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIET -->
+  <div class="section">
+    <div class="section-title">Diet &nbsp;<span style="font-weight:400;font-size:.72rem;color:var(--muted)">— servings per day (move sliders)</span></div>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:16px">A "serving" ≈ 85–150g food or 250ml drink. Cooking oil: 1 serving = 1 tablespoon (14g).</p>
+
+    <div class="slider-row"><div class="slider-label">Grains &amp; Bread<small>rice, pasta, bread, oats</small></div>
+      <input type="range" id="gd-cereals" min="0" max="10" step=".5" value="3" oninput="sv(this,'gv-cereals')"><div class="slider-val" id="gv-cereals">3</div></div>
+
+    <div class="slider-row"><div class="slider-label">Red Meat<small>beef, pork, lamb</small></div>
+      <input type="range" id="gd-rmeat" min="0" max="6" step=".5" value="1" oninput="sv(this,'gv-rmeat')"><div class="slider-val" id="gv-rmeat">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Poultry<small>chicken, turkey, duck</small></div>
+      <input type="range" id="gd-poultry" min="0" max="6" step=".5" value="1" oninput="sv(this,'gv-poultry')"><div class="slider-val" id="gv-poultry">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Full-fat Dairy<small>cream, cheese, butter</small></div>
+      <input type="range" id="gd-fdairy" min="0" max="6" step=".5" value=".5" oninput="sv(this,'gv-fdairy')"><div class="slider-val" id="gv-fdairy">0.5</div></div>
+
+    <div class="slider-row"><div class="slider-label">Low-fat Dairy<small>milk, yogurt, cottage</small></div>
+      <input type="range" id="gd-ldairy" min="0" max="6" step=".5" value="1" oninput="sv(this,'gv-ldairy')"><div class="slider-val" id="gv-ldairy">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Root Vegetables<small>potatoes, carrots, beets</small></div>
+      <input type="range" id="gd-rootveg" min="0" max="6" step=".5" value="1" oninput="sv(this,'gv-rootveg')"><div class="slider-val" id="gv-rootveg">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Leafy Greens &amp; Fresh Veg<small>salad, broccoli, spinach</small></div>
+      <input type="range" id="gd-greens" min="0" max="6" step=".5" value="1" oninput="sv(this,'gv-greens')"><div class="slider-val" id="gv-greens">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Fresh Fruit<small>whole, not juiced</small></div>
+      <input type="range" id="gd-fruit" min="0" max="6" step=".5" value="1" oninput="sv(this,'gv-fruit')"><div class="slider-val" id="gv-fruit">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Fish &amp; Seafood<small>salmon, tuna, shrimp</small></div>
+      <input type="range" id="gd-fish" min="0" max="4" step=".5" value=".5" oninput="sv(this,'gv-fish')"><div class="slider-val" id="gv-fish">0.5</div></div>
+
+    <div class="slider-row"><div class="slider-label">Cooking / Vegetable Oil<small>tablespoons used daily</small></div>
+      <input type="range" id="gd-oil" min="0" max="12" step=".5" value="2" oninput="sv(this,'gv-oil')"><div class="slider-val" id="gv-oil">2</div></div>
+
+    <div class="slider-row"><div class="slider-label">Processed &amp; Fast Food<small>instant noodles, takeaway, deli</small></div>
+      <input type="range" id="gd-proc" min="0" max="6" step=".5" value="1" oninput="sv(this,'gv-proc')"><div class="slider-val" id="gv-proc">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Canned Foods<small>tinned soup, beans, tomatoes</small></div>
+      <input type="range" id="gd-canned" min="0" max="4" step=".5" value=".5" oninput="sv(this,'gv-canned')"><div class="slider-val" id="gv-canned">0.5</div></div>
+
+    <div class="slider-row"><div class="slider-label">Pickled / Jarred Foods<small>pickles, condiments, sauces</small></div>
+      <input type="range" id="gd-pickled" min="0" max="4" step=".5" value=".5" oninput="sv(this,'gv-pickled')"><div class="slider-val" id="gv-pickled">0.5</div></div>
+
+    <div class="slider-row"><div class="slider-label">Drinking Water<small>litres per day</small></div>
+      <input type="range" id="gd-water" min="0" max="5" step=".25" value="2" oninput="sv(this,'gv-water')"><div class="slider-val" id="gv-water">2</div></div>
+
+    <div class="slider-row"><div class="slider-label">Soft Drinks &amp; Juices<small>servings (250ml each)</small></div>
+      <input type="range" id="gd-bev" min="0" max="6" step=".5" value="1" oninput="sv(this,'gv-bev')"><div class="slider-val" id="gv-bev">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Sweets &amp; Desserts<small>jam, jelly, candy, pastry</small></div>
+      <input type="range" id="gd-sweets" min="0" max="4" step=".5" value=".5" oninput="sv(this,'gv-sweets')"><div class="slider-val" id="gv-sweets">0.5</div></div>
+  </div>
+
+  <!-- PLASTICS -->
+  <div class="section">
+    <div class="section-title">Plastic &amp; Packaging Habits</div>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px">Phthalates leach from plastics especially under heat, acidity, or fat contact.</p>
+    <label class="check-row"><input type="checkbox" id="gp-micro">
+      <span>Microwave food in plastic containers or covered with cling wrap<small>Heat is the biggest driver of DEHP migration into food</small></span></label>
+    <label class="check-row"><input type="checkbox" id="gp-pvcwrap">
+      <span>Food at the store is wrapped in soft PVC cling film<small>PVC wraps can contain up to 40% phthalates by weight</small></span></label>
+    <label class="check-row"><input type="checkbox" id="gp-store">
+      <span>Store fatty/acidic foods in plastic containers (cheese, sauces, leftovers)<small>Fats and acids extract phthalates faster</small></span></label>
+    <label class="check-row"><input type="checkbox" id="gp-bottle">
+      <span>Primary drinking water source is plastic bottles<small>PET bottles leach more when warm or reused</small></span></label>
+    <label class="check-row"><input type="checkbox" id="gp-medical">
+      <span>Recent/ongoing use of medical devices with plastic tubing (IV, catheter)<small>Medical PVC is a significant, often overlooked exposure route</small></span></label>
+  </div>
+
+  <!-- PERSONAL CARE & ENVIRONMENT -->
+  <div class="section">
+    <div class="section-title">Personal Care &amp; Environment</div>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px">DEP (in fragrances) and DBP (in nail products) absorb through skin and lungs.</p>
+    <label class="check-row"><input type="checkbox" id="gc-perf">
+      <span>Use fragranced products daily — perfume, scented lotion, hairspray<small>Fragrance is the single largest source of DEP exposure; EPA RfD 800 µg/kg/day</small></span></label>
+    <label class="check-row"><input type="checkbox" id="gc-hair">
+      <span>Use hair relaxers, perms, or intensive hair treatments<small>Hair products have among the highest phthalate concentrations; disproportionately affects Black and Latina women</small></span></label>
+    <label class="check-row"><input type="checkbox" id="gc-nail">
+      <span>Use nail polish or nail polish remover ≥2×/week<small>DBP is common in nail products; EPA RfD 100 µg/kg/day</small></span></label>
+    <label class="check-row"><input type="checkbox" id="gc-vinyl">
+      <span>Work in/near vinyl flooring, construction, or manufacturing<small>Inhalation of airborne phthalates is significant in these environments</small></span></label>
+    <label class="check-row"><input type="checkbox" id="gc-dust">
+      <span>Home has older vinyl floors, wallpaper, or many soft plastic surfaces<small>House dust is a major exposure route, especially for children; 0.30–524 µg/g phthalates found in indoor dust</small></span></label>
+  </div>
+
+  <button class="calc-btn" onclick="calcGeneral()">Calculate My Phthalate Exposure</button>
+
+  <!-- GENERAL RESULTS -->
+  <div class="results" id="g-results">
+    <div style="height:20px"></div>
+    <div class="result-card">
+      <div style="font-size:.82rem;color:var(--muted);font-weight:600">ESTIMATED DAILY DEHP EXPOSURE</div>
+      <div class="dose-number" id="gr-dose">—</div>
+      <div class="dose-unit">µg / kg body weight / day</div>
+      <div id="gr-badge" class="risk-badge"></div>
+      <div class="bar-wrap">
+        <div class="bar-labels"><span>0</span><span id="gr-bar-label"></span><span id="gr-bar-pct"></span></div>
+        <div class="bar-track"><div class="bar-fill" id="gr-bar" style="width:0%"></div></div>
+      </div>
+      <p id="gr-summary" style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:480px;margin:0 auto"></p>
+    </div>
+
+    <!-- Hazard Index -->
+    <div class="section" id="gr-hi-section" style="display:none">
+      <div class="section-title">Cumulative Hazard Index — Multiple Phthalates</div>
+      <div id="gr-hi-content"></div>
+    </div>
+
+    <!-- Breakdown -->
+    <div class="section">
+      <div class="section-title">Exposure Sources Breakdown</div>
+      <div class="sources-grid" id="gr-sources"></div>
+    </div>
+
+    <!-- Health effects -->
+    <div class="section">
+      <div class="section-title">Potential Health Implications</div>
+      <ul class="harm-list" id="gr-harms"></ul>
+    </div>
+
+    <!-- Tips -->
+    <div class="section">
+      <div class="section-title">Reducing Your Exposure</div>
+      <ul class="tip-list" id="gr-tips"></ul>
+    </div>
+
+    <!-- Sources -->
+    <div class="section">
+      <div class="section-title">Methodology &amp; Data Sources</div>
+      <div class="sources-box">
+        <strong>Food concentration data (DEHP µg/kg) — primary source: Sui et al. 2014 (n=1,704 food samples, 16 Chinese provinces):</strong>
+        Cereals 130 · Red meat &amp; poultry 230 · Full-fat dairy 80 (milk 50; cream higher) · Low-fat dairy 50 · Root vegetables 180 · Leafy vegetables 50 · Fresh fruit 12 (European monitoring) · Fish &amp; seafood 80 · Vegetable oil 210 (Sui et al.; Serrano review range 404–5,591 across heterogeneous studies) · Processed food 180 · Canned 100 (estimated) · Pickled/jarred 200 (Sui jelly/jam 80; pickles 490) · Beverages 60 · Water 10 µg/L · Sweets 80. Plastic behaviour add-ons are rough estimates from migration literature, not directly measured per behaviour — treat as indicative.<br><br>
+        <strong>Regulatory limits:</strong> EFSA TDI: DEHP 50, DBP 10, BBP 500, DiNP 150 µg/kg/day. EPA RfD: DEHP 20, DBP 100, BBzP 200, DEP 800 µg/kg/day.<br><br>
+        <strong>Standard unit:</strong> µg per kg body weight per day. Serving sizes: cereals 100g · meat/poultry 85g · full-fat dairy 50g · low-fat dairy 200g · vegetables/fruit 85g · fish 85g · oil 14g (1 tbsp) · processed food 100g · canned 120g · pickled 30g · beverages 250ml · water per litre. Personal care DEP values based on Marsee et al. 2006 median DEP intake (~6.64 µg/kg/day from urinary metabolites).
+      </div>
+      <p class="disclaimer">Estimates are for educational purposes only. Actual exposure varies substantially by individual diet, geography, and product. Not a substitute for medical advice.</p>
+    </div>
+  </div>
+</div><!-- /page-general -->
+
+
+<!-- ═══════════════════════════════════════════════
+     TAB 2 — PRENATAL & MATERNAL FOCUS
+═══════════════════════════════════════════════════ -->
+<div id="page-prenatal" class="page active">
+
+  <!-- intro callout -->
+  <div class="callout info" style="margin-top:20px">
+    <strong>About this tool</strong>
+    This educational estimator is designed for pregnant women, those trying to conceive, and new parents. It draws on population-level research to illustrate what current science knows about phthalate exposure during pregnancy — not to alarm, but to inform and empower. Knowledge is the starting point for small, meaningful changes. All associations shown are from peer-reviewed studies.
+  </div>
+
+  <!-- YOUR SITUATION -->
+  <div class="section">
+    <div class="section-title rose">Your Situation</div>
+    <div class="field">
+      <label class="fl">Current status</label>
+      <div class="chips">
+        <span class="chip"><input type="radio" name="p-status" id="ps-ttc" value="ttc"><label for="ps-ttc" class="rose-chip">Trying to conceive</label></span>
+        <span class="chip"><input type="radio" name="p-status" id="ps-t1" value="t1"><label for="ps-t1" class="rose-chip">Pregnant — 1st trimester (wk 1–12)</label></span>
+        <span class="chip"><input type="radio" name="p-status" id="ps-t2" value="t2" checked><label for="ps-t2" class="rose-chip">Pregnant — 2nd trimester (wk 13–26)</label></span>
+        <span class="chip"><input type="radio" name="p-status" id="ps-t3" value="t3"><label for="ps-t3" class="rose-chip">Pregnant — 3rd trimester (wk 27–40)</label></span>
+        <span class="chip"><input type="radio" name="p-status" id="ps-pp" value="postpartum"><label for="ps-pp" class="rose-chip">Postpartum / breastfeeding</label></span>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label class="fl">Your body weight <span class="hint">(kg)</span></label>
+        <input type="number" id="p-weight" min="30" max="200" placeholder="e.g. 65"></div>
+      <div class="field"><label class="fl">Age <span class="hint">(years)</span></label>
+        <input type="number" id="p-age" min="15" max="55" placeholder="e.g. 30"></div>
+    </div>
+    <div class="field">
+      <label class="fl">Ethnicity <span class="hint">(relevant to exposure disparities — optional)</span></label>
+      <div class="chips">
+        <span class="chip"><input type="radio" name="p-eth" id="pe-w" value="white"><label for="pe-w">White / European</label></span>
+        <span class="chip"><input type="radio" name="p-eth" id="pe-b" value="black"><label for="pe-b">Black / African American</label></span>
+        <span class="chip"><input type="radio" name="p-eth" id="pe-l" value="latina"><label for="pe-l">Hispanic / Latina</label></span>
+        <span class="chip"><input type="radio" name="p-eth" id="pe-a" value="asian"><label for="pe-a">Asian</label></span>
+        <span class="chip"><input type="radio" name="p-eth" id="pe-o" value="other" checked><label for="pe-o">Other / Prefer not to say</label></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIET -->
+  <div class="section">
+    <div class="section-title rose">Diet &amp; Food Sources</div>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:16px">Fatty foods are the primary route of phthalate exposure during pregnancy. Even small reductions in high-fat animal products and cooking oil can meaningfully lower your intake.</p>
+
+    <div class="slider-row"><div class="slider-label">Grains &amp; Bread<small>rice, pasta, bread, oats</small></div>
+      <input type="range" class="rose" id="pd-cereals" min="0" max="10" step=".5" value="3" oninput="sv(this,'pv-cereals')"><div class="slider-val rose" id="pv-cereals">3</div></div>
+
+    <div class="slider-row"><div class="slider-label">Red Meat<small>beef, pork, lamb</small></div>
+      <input type="range" class="rose" id="pd-rmeat" min="0" max="6" step=".5" value="1" oninput="sv(this,'pv-rmeat')"><div class="slider-val rose" id="pv-rmeat">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Poultry<small>chicken, turkey</small></div>
+      <input type="range" class="rose" id="pd-poultry" min="0" max="6" step=".5" value="1" oninput="sv(this,'pv-poultry')"><div class="slider-val rose" id="pv-poultry">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Full-fat Dairy<small>cream, cheese, butter</small></div>
+      <input type="range" class="rose" id="pd-fdairy" min="0" max="6" step=".5" value=".5" oninput="sv(this,'pv-fdairy')"><div class="slider-val rose" id="pv-fdairy">0.5</div></div>
+
+    <div class="slider-row"><div class="slider-label">Low-fat Dairy<small>milk, yogurt</small></div>
+      <input type="range" class="rose" id="pd-ldairy" min="0" max="6" step=".5" value="1.5" oninput="sv(this,'pv-ldairy')"><div class="slider-val rose" id="pv-ldairy">1.5</div></div>
+
+    <div class="slider-row"><div class="slider-label">Root Vegetables<small>potatoes, carrots</small></div>
+      <input type="range" class="rose" id="pd-rootveg" min="0" max="6" step=".5" value="1" oninput="sv(this,'pv-rootveg')"><div class="slider-val rose" id="pv-rootveg">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Leafy Greens &amp; Veg<small>salad, broccoli</small></div>
+      <input type="range" class="rose" id="pd-greens" min="0" max="6" step=".5" value="1.5" oninput="sv(this,'pv-greens')"><div class="slider-val rose" id="pv-greens">1.5</div></div>
+
+    <div class="slider-row"><div class="slider-label">Fresh Fruit<small>whole fruit</small></div>
+      <input type="range" class="rose" id="pd-fruit" min="0" max="6" step=".5" value="2" oninput="sv(this,'pv-fruit')"><div class="slider-val rose" id="pv-fruit">2</div></div>
+
+    <div class="slider-row"><div class="slider-label">Fish &amp; Seafood<small>salmon, tuna</small></div>
+      <input type="range" class="rose" id="pd-fish" min="0" max="4" step=".5" value=".5" oninput="sv(this,'pv-fish')"><div class="slider-val rose" id="pv-fish">0.5</div></div>
+
+    <div class="slider-row"><div class="slider-label">Cooking Oil<small>tablespoons per day</small></div>
+      <input type="range" class="rose" id="pd-oil" min="0" max="12" step=".5" value="2" oninput="sv(this,'pv-oil')"><div class="slider-val rose" id="pv-oil">2</div></div>
+
+    <div class="slider-row"><div class="slider-label">Processed &amp; Fast Food<small>takeaway, packaged meals</small></div>
+      <input type="range" class="rose" id="pd-proc" min="0" max="6" step=".5" value="1" oninput="sv(this,'pv-proc')"><div class="slider-val rose" id="pv-proc">1</div></div>
+
+    <div class="slider-row"><div class="slider-label">Canned Foods<small>tinned soup, beans</small></div>
+      <input type="range" class="rose" id="pd-canned" min="0" max="4" step=".5" value=".5" oninput="sv(this,'pv-canned')"><div class="slider-val rose" id="pv-canned">0.5</div></div>
+
+    <div class="slider-row"><div class="slider-label">Drinking Water<small>litres per day</small></div>
+      <input type="range" class="rose" id="pd-water" min="0" max="5" step=".25" value="2" oninput="sv(this,'pv-water')"><div class="slider-val rose" id="pv-water">2</div></div>
+
+    <div class="slider-row"><div class="slider-label">Soft Drinks &amp; Juices<small>servings per day</small></div>
+      <input type="range" class="rose" id="pd-bev" min="0" max="6" step=".5" value=".5" oninput="sv(this,'pv-bev')"><div class="slider-val rose" id="pv-bev">0.5</div></div>
+  </div>
+
+  <!-- PRENATAL VITAMINS + SUPPLEMENTS -->
+  <div class="section">
+    <div class="section-title rose">Prenatal Vitamins &amp; Supplements</div>
+    <div class="callout info" style="margin-bottom:14px">
+      A 2025 study (Gardener et al.) tested 156 OTC prenatal vitamins and found DEHP in <strong>25% of products</strong> — up to 28.92 µg per serving. Capsule forms had the highest detection rate (51%).
+    </div>
+    <div class="field">
+      <label class="fl">Do you take prenatal vitamins?</label>
+      <div class="chips">
+        <span class="chip"><input type="radio" name="pv-yn" id="pvy" value="yes"><label for="pvy" class="rose-chip">Yes</label></span>
+        <span class="chip"><input type="radio" name="pv-yn" id="pvn" value="no" checked><label for="pvn">No</label></span>
+      </div>
+    </div>
+    <div class="field" id="pvit-type-field" style="display:none">
+      <label class="fl">What form?</label>
+      <div class="chips">
+        <span class="chip"><input type="radio" name="pv-form" id="pvf-cap" value="capsule"><label for="pvf-cap" class="rose-chip">Capsule (highest risk)</label></span>
+        <span class="chip"><input type="radio" name="pv-form" id="pvf-tab" value="tablet" checked><label for="pvf-tab">Tablet / Gummy</label></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSONAL CARE -->
+  <div class="section">
+    <div class="section-title rose">Personal Care Products</div>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px">During pregnancy, skin absorption and inhalation of phthalates from personal care products represent a meaningful, often overlooked route of exposure.</p>
+
+    <label class="check-row"><input type="checkbox" class="rose" id="pc-perf">
+      <span>Use fragranced products daily — perfume, scented lotion, body wash<small>DEP in fragrance; median pregnant women's DEP in Atlanta cohort was 3× higher than national average</small></span></label>
+    <label class="check-row"><input type="checkbox" class="rose" id="pc-hair">
+      <span>Use hair relaxers, perms, keratin treatments, or intensive hair products<small>Research shows Black and Latina women have significantly higher phthalate body burden, partly attributed to marketed hair products</small></span></label>
+    <label class="check-row"><input type="checkbox" class="rose" id="pc-nail">
+      <span>Use nail polish or nail polish remover ≥2×/week<small>DBP (EPA RfD 100 µg/kg/day) — nail products are a known source; consider phthalate-free options during pregnancy</small></span></label>
+    <label class="check-row"><input type="checkbox" class="rose" id="pc-lotion">
+      <span>Apply lotion, cream, or stretch mark oil to large skin areas daily<small>If fragranced or containing "parfum," likely a DEP source</small></span></label>
+  </div>
+
+  <!-- PLASTIC HABITS -->
+  <div class="section">
+    <div class="section-title rose">Plastic &amp; Home Environment</div>
+    <label class="check-row"><input type="checkbox" class="rose" id="pp-micro">
+      <span>Microwave food in plastic or covered with plastic wrap<small>Generates the highest dietary phthalate exposure; switch to glass/ceramic</small></span></label>
+    <label class="check-row"><input type="checkbox" class="rose" id="pp-bottle">
+      <span>Primary drinking water is single-use plastic bottles<small>Especially a concern when bottles are left in heat</small></span></label>
+    <label class="check-row"><input type="checkbox" class="rose" id="pp-vinyl">
+      <span>Home or workplace has old vinyl (PVC) flooring or fresh-paint/new construction smells<small>Indoor air phthalate concentrations can be significant; ventilate regularly</small></span></label>
+    <label class="check-row"><input type="checkbox" class="rose" id="pp-medical">
+      <span>Received IV infusion, catheter, or other medical tubing during this pregnancy<small>Medical PVC: typically 20–40% DEHP by weight; a major clinical exposure event</small></span></label>
+  </div>
+
+  <button class="calc-btn rose" onclick="calcPrenatal()">Estimate My Prenatal Exposure</button>
+
+  <!-- PRENATAL RESULTS -->
+  <div class="results" id="p-results">
+    <div style="height:20px"></div>
+
+    <!-- Main dose card -->
+    <div class="result-card">
+      <div style="font-size:.82rem;color:var(--muted);font-weight:600">ESTIMATED DAILY DEHP EXPOSURE</div>
+      <div class="dose-number" id="pr-dose" style="color:var(--rose)">—</div>
+      <div class="dose-unit">µg / kg body weight / day</div>
+      <div id="pr-badge" class="risk-badge"></div>
+      <div class="bar-wrap">
+        <div class="bar-labels"><span>0</span><span id="pr-bar-label"></span><span id="pr-bar-pct"></span></div>
+        <div class="bar-track"><div class="bar-fill" id="pr-bar" style="width:0%"></div></div>
+      </div>
+      <p id="pr-summary" style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:480px;margin:0 auto"></p>
+    </div>
+
+    <!-- PK Model -->
+    <div class="section" id="pr-pk" style="display:none;border-color:var(--primary)"></div>
+
+    <!-- Why pregnancy changes the picture — merged carousel -->
+    <div class="section" style="border-color:#fda4af">
+      <div class="section-title rose">Why Pregnancy Changes the Picture</div>
+      <p style="font-size:.84rem;line-height:1.55;color:var(--muted);margin-bottom:14px">The regulatory limits shown above were designed for adults. A developing baby faces a different set of risks — here's what the research shows.</p>
+      <div class="carousel" id="limits-carousel">
+        <div class="carousel-track">
+          <div class="carousel-slide active">
+            <div class="carousel-card">
+              <div class="cc-num">1 of 5</div>
+              <div class="cc-title">The safe limits weren't designed for pregnancy</div>
+              <div class="cc-body">Regulatory limits like the EFSA TDI and EPA reference dose were derived from adult animal studies — focused on liver changes and reproductive organ weight. They were not calculated to protect a developing fetus, whose biology and sensitivities are fundamentally different from an adult's.</div>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <div class="carousel-card">
+              <div class="cc-num">2 of 5</div>
+              <div class="cc-title">Your baby borrows your thyroid hormones</div>
+              <div class="cc-body">Before about week 12, the fetal thyroid isn't yet active. Your baby depends entirely on your thyroid hormones crossing the placenta to guide brain and body development. The main DEHP breakdown product in your body (MEHP) competes with those hormones for the same carrier protein in your blood. Studies have found measurably lower maternal thyroid hormone at phthalate levels common in the general population — at week 10, exactly when it matters most for brain formation.</div>
+              <div class="cc-cite">Qian et al. 2020; Yin et al. 2024</div>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <div class="carousel-card">
+              <div class="cc-num">3 of 5</div>
+              <div class="cc-title">Timing matters as much as amount</div>
+              <div class="cc-body">With chemicals that act like hormones, "more dose = more harm" doesn't always apply. What matters is whether exposure happens during the narrow window when a particular organ or signal is being programmed. A small disruption at 8 weeks — when male reproductive anatomy is forming — can matter more than a larger exposure at 30 weeks. Researchers found children's behavioral outcomes were linked to exposure at week 26 specifically, but not at earlier timepoints in the same pregnancy. Timing of exposure is just as important as the amount.</div>
+              <div class="cc-cite">Park et al. 2026; Whyatt et al. 2009</div>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <div class="carousel-card">
+              <div class="cc-num">4 of 5</div>
+              <div class="cc-title">Exposure can reshape how genes work — long term</div>
+              <div class="cc-body">Fetal exposure doesn't just cause immediate effects — it can alter which genes are switched on or off in ways that persist into childhood and adulthood. Think of it as the body's instruction manual being written during pregnancy; interference during that writing process leaves lasting marks. Researchers have found changes to placental gene regulation at first-trimester phthalate levels typical of women with completely ordinary diet and product use.</div>
+              <div class="cc-cite">Grindler et al. 2018; Rolfo et al. 2020</div>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <div class="carousel-card">
+              <div class="cc-num">5 of 5</div>
+              <div class="cc-title">Replacement chemicals aren't automatically safer</div>
+              <div class="cc-body">DEHTP is now widely used in plastics <em>instead</em> of DEHP after DEHP was restricted. Yet a 2026 study found DEHTP was associated with the same behavioral effects in children. Regulatory approval of a substitute means it passed adult-focused safety tests — it doesn't guarantee safety for fetal development. The pattern repeats: restrict, substitute, discover.</div>
+              <div class="cc-cite">Park et al. 2026</div>
+            </div>
+          </div>
+        </div>
+        <div class="carousel-nav">
+          <button class="carousel-btn" onclick="moveCarousel('limits-carousel',-1)" id="limits-prev" disabled>← Prev</button>
+          <div class="carousel-dots" id="limits-dots"></div>
+          <button class="carousel-btn" onclick="moveCarousel('limits-carousel',1)" id="limits-next">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trimester timeline -->
+    <div class="section">
+      <div class="section-title rose">Developmental Vulnerability Window</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px">Phthalate effects on fetal development depend heavily on <em>when</em> during pregnancy exposure occurs. The window highlighted below is most critical given your current trimester.</p>
+      <div class="timeline" id="pr-timeline"></div>
+      <div id="pr-timeline-note" class="callout warning" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Postpartum / breastfeeding section -->
+    <div class="section" id="pr-pp-section" style="display:none">
+      <div class="section-title rose">Postpartum &amp; Breastfeeding Considerations</div>
+      <div id="pr-pp-content"></div>
+    </div>
+
+    <!-- Source breakdown -->
+    <div class="section">
+      <div class="section-title rose">Where Your Exposure Is Coming From</div>
+      <div class="sources-grid" id="pr-sources"></div>
+    </div>
+
+    <!-- Reduction tips - prenatal specific -->
+    <div class="section">
+      <div class="section-title rose">Priority Actions During Pregnancy</div>
+      <ul class="tip-list" id="pr-tips"></ul>
+    </div>
+
+    <!-- What-If Sandbox -->
+    <div class="section" id="pr-sandbox" style="display:none;border-color:var(--green)"></div>
+
+    <!-- Outcome cards — plain language -->
+    <div class="section">
+      <div class="section-title rose">What Research Has Found in Real Pregnancies</div>
+      <p style="font-size:.84rem;color:var(--muted);line-height:1.55;margin-bottom:4px">These findings come from studies that followed thousands of real pregnant women and their children. They show patterns across large groups — <strong>not certainties for any individual</strong>. Many women with similar exposures have healthy pregnancies.</p>
+      <details style="margin-bottom:12px">
+        <summary style="font-size:.78rem;color:var(--primary);cursor:pointer;padding:6px 0;font-weight:600">What do "more likely" and "higher odds" actually mean? ▾</summary>
+        <div style="font-size:.79rem;color:#4b5563;line-height:1.55;padding:10px 0 4px">
+          Researchers compare two groups: mothers with lower phthalate levels vs. mothers with higher levels. When a study says an outcome was "45% more likely," it means that in the higher-exposure group, 45% more cases occurred than in the lower-exposure group — not that 45% of those mothers experienced it. For example, if 4 in 100 low-exposure women gave birth early and 5.8 in 100 high-exposure women did, that's roughly 45% more likely — but still a small absolute number. The studies are telling us about a real pattern in the population, while individual outcomes depend on many factors.
+        </div>
+      </details>
+      <div class="outcome-grid" id="pr-outcomes"></div>
+    </div>
+
+    <!-- Urinary metabolite reference -->
+    <div class="section">
+      <div class="section-title rose">How You Compare: Typical Urinary Phthalate Levels in Pregnant Women (US)</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:8px">From the ECHO Program (n=5,006 pregnancies, 1998–2022) and CDC NHANES. These are urinary metabolite concentrations — a direct measure of phthalate absorbed by the body.</p>
+      <div class="callout" style="margin-bottom:12px;font-size:.8rem;line-height:1.6">
+        <strong>What do ng/mL and nmol/L mean?</strong><br>
+        These are units for measuring incredibly tiny amounts of a substance dissolved in body fluid (urine or blood).<br>
+        <strong>ng/mL</strong> = nanograms per milliliter. One nanogram is one <em>billionth</em> of a gram — about the weight of a single bacterium. A milliliter is roughly 20 drops of water.<br>
+        <strong>nmol/L</strong> = nanomoles per liter — a similar scale but counts molecules rather than mass, useful when comparing different chemicals.<br>
+        <span style="color:var(--muted)">Why do such tiny amounts matter? Because your body's own hormones — estrogen, testosterone, thyroid hormone — also circulate at nanogram concentrations. Your cells are exquisitely tuned to respond to signals at this scale, which is why even trace amounts of hormone-disrupting chemicals are studied so carefully.</span>
+      </div>
+      <table class="biom-table">
+        <thead><tr><th>Phthalate Metabolite</th><th>US Pregnant Women Median</th><th>Source of Exposure</th></tr></thead>
+        <tbody>
+          <tr><td>ΣDEHP metabolites</td><td>101 nmol/L (T2–T3)</td><td>Fatty foods, plastics, medical devices</td></tr>
+          <tr><td>Phthalic acid</td><td>220 nmol/L</td><td>Many sources; rises across pregnancy</td></tr>
+          <tr><td>MEP (monoethyl phthalate)</td><td>41–103 ng/mL*</td><td>Fragrance, personal care products</td></tr>
+          <tr><td>MBP (from DBP)</td><td>9.9–11 ng/mL</td><td>Food, cosmetics</td></tr>
+          <tr><td>MBzP (from BBP)</td><td>5.7–9.4 ng/mL</td><td>Floor adhesives, personal care</td></tr>
+          <tr><td>DiNP metabolites</td><td>28 nmol/L</td><td>Plastic food packaging, toys</td></tr>
+        </tbody>
+      </table>
+      <div class="disparity-note">
+        <strong>Racial/ethnic exposure disparities</strong>
+        Research consistently shows Black and Latina women have significantly higher urinary phthalate concentrations than white women. In the Atlanta ECHO cohort, Black women's median MEP (a DEP metabolite) was 103 ng/mL — nearly 3× the national average (35.9 ng/mL) and the CDC non-Hispanic Black reference of 54.9 ng/mL. This disparity is partly driven by phthalate-containing personal care and hair products disproportionately marketed to women of color. *Higher-end values above reflect this disparity.
+      </div>
+    </div>
+
+    <!-- Talk to your doctor -->
+    <div class="section">
+      <div class="section-title rose">Talking to Your Healthcare Provider</div>
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:12px">These are evidence-based questions and disclosures that may be worth raising at your next appointment:</p>
+      <ul class="doctor-list" id="pr-doctor"></ul>
+    </div>
+
+    <!-- Data sources -->
+    <div class="section">
+      <div class="section-title rose">Studies Behind This Tool</div>
+      <div class="sources-box">
+        <strong>Key prenatal research used:</strong>
+        Trasande et al. 2024 (Lancet Planet Health) — ECHO Program, 5,006 pregnancies, preterm birth ORs.<br>
+        Marsee et al. 2006 (Env Health Perspectives) — reduced anogenital distance in male infants.<br>
+        Zang et al. 2023 — low birth weight in ART/natural conception cohort, China.<br>
+        Kim et al. 2021 — autistic traits (SCQ scores) in Korean children.<br>
+        Barrett 2019 — prenatal phthalate exposure and ADHD diagnosis, Norwegian MoBa cohort.<br>
+        Grindler et al. 2018 — first trimester placental methylome and transcriptome disruption (EGFR).<br>
+        Hoffman et al. 2025 — newborn metabolome perturbations (tyrosine/tryptophan → attention, arousal).<br>
+        Jacobson et al. (ECHO/JAMA Psychiatry) — prenatal phthalates and postpartum depression.<br>
+        Zong et al. 2015 — DEHP disrupts placental vasculature in mice.<br>
+        Barakat et al. 2018 — prenatal DEHP causes hippocampal neurodegeneration in adult offspring.<br>
+        Gardener et al. 2025 — DEHP detected in 25% of OTC prenatal vitamins (capsule form: 51%).<br>
+        Saraluck et al. 2024 — microplastics detected in 39% of human breast milk samples.<br>
+        Laws et al. 2023 — long-term DEHP/DiNP exposure alters estrous cyclicity and birth rates in mice.<br>
+        Yang et al. 2025 — DEHP disrupts Leydig cell testosterone synthesis via cAMP/PKA/SF-1/StAR.
+      </div>
+      <p class="disclaimer">This tool is for educational purposes only and does not constitute medical advice. Exposure estimates are based on average food composition data and will vary. Consult your OB-GYN, midwife, or maternal-fetal medicine specialist for personalised guidance.</p>
+    </div>
+  </div>
+</div><!-- /page-prenatal -->
+
+
+<!-- ═══════════════════ SHARED JAVASCRIPT ═══════════════════════════ -->
+<script>
+
+// ── Utility ─────────────────────────────────────────────────────────────
+function sv(el, vid) { document.getElementById(vid).textContent = el.value; }
+function $(id) { return document.getElementById(id); }
+function checked(name) { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : null; }
+function isChecked(id) { return $(id).checked; }
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  $('page-' + tab).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'prenatal') btn.classList.add('rose');
+}
+
+// Prenatal vitamin toggle
+document.querySelectorAll('input[name="pv-yn"]').forEach(r =>
+  r.addEventListener('change', () => {
+    $('pvit-type-field').style.display = r.value === 'yes' ? 'block' : 'none';
+  })
+);
+
+// ── FOOD DATA ────────────────────────────────────────────────────────────
+// DEHP concentration µg per kg of food (per litre for water/bev)
+// Sources: Sui 2014 + Serrano 2014 review + Costa 2023
+// DEHP concentrations in µg/kg food (µg/L for water/bev).
+// Primary source: Sui et al. 2014, n=1,704 Chinese food samples.
+// Supplemented by Serrano review and Costa 2023 where noted.
+const CONC = {
+  cereals : 130,  // Sui 2014: 130 µg/kg (middle-bound)
+  rmeat   : 230,  // Sui 2014: 230 µg/kg (middle-bound)
+  poultry : 230,  // Sui 2014 "meat" category (pork/beef/poultry combined); Serrano suggests up to 300 for fatty poultry
+  fdairy  :  80,  // Sui 2014 milk = 50; full-fat/cream moderately higher; conservative 80
+  ldairy  :  50,  // Sui 2014: 50 µg/kg (upper-bound)
+  rootveg : 180,  // Sui 2014: 180 µg/kg (middle-bound)
+  greens  :  50,  // Sui 2014 leaf vegetables: 50 µg/kg (middle-bound)
+  fruit   :  12,  // European food monitoring (Serrano review): 10–13 µg/kg fresh fruit
+  fish    :  80,  // Sui 2014 aquatic products: 80 µg/kg (middle-bound)
+  oil     : 210,  // Sui 2014 vegetable oil: 210 µg/kg (upper-bound); Serrano range 404–5,591 from multi-study review
+  proc    : 180,  // Sui 2014 instant noodles: 180 µg/kg (upper-bound) — proxy for processed food
+  canned  : 100,  // Estimated (no direct Sui category); conservative per Costa 2023 review
+  pickled : 200,  // Sui 2014 jelly/jam 80; pickles 490 µg/kg; jarred foods broadly ~200
+  water   :  10,  // Sui 2014: 10 µg/kg (upper-bound), per litre
+  bev     :  60,  // Sui 2014 beverages: 60 µg/kg (upper-bound)
+  sweets  :  80   // Sui 2014 jelly/jam: 80 µg/kg (upper-bound)
+};
+
+// Serving size in grams (water in mL → treated as grams)
+const SERV = {
+  cereals: 100, rmeat: 85, poultry: 85, fdairy: 50, ldairy: 200,
+  rootveg: 85, greens: 85, fruit: 85, fish: 85,
+  oil: 14, proc: 100, canned: 120, pickled: 30,
+  water: 1000, bev: 250, sweets: 30
+};
+
+const FOOD_LABEL = {
+  cereals:'Grains & Bread', rmeat:'Red Meat', poultry:'Poultry',
+  fdairy:'Full-fat Dairy', ldairy:'Low-fat Dairy',
+  rootveg:'Root Vegetables', greens:'Leafy Greens', fruit:'Fresh Fruit',
+  fish:'Fish & Seafood', oil:'Cooking Oil', proc:'Processed Food',
+  canned:'Canned Foods', pickled:'Pickled/Jarred', water:'Drinking Water',
+  bev:'Beverages', sweets:'Sweets & Desserts'
+};
+
+// Extra DEHP µg/day from plastic habits (rough estimates from migration literature;
+// no single peer-reviewed value per behaviour — treat as indicative, not precise).
+const PLASTIC_UG = {
+  micro   :  50,  // Microwave in plastic: DEHP migrates into fatty food under heat
+  pvcwrap :  25,  // PVC cling wrap contact with food
+  store   :  15,  // Cold storage in plastic (lower migration than heat)
+  bottle  :  10,  // Single-use PET bottles: low but non-zero
+  medical : 200   // IV/catheter PVC tubing: documented significant dose
+};
+
+// DEP µg/day absolute for personal care (based on Marsee et al. 2006:
+// median DEP intake ~6.64 µg/kg/day from urinary metabolites ≈ 430 µg/day for 65 kg).
+// Values below reflect estimated contribution of each product category.
+const CARE_UG = {
+  perf  : 500,  // Fragranced products: primary DEP source in personal care
+  hair  : 700,  // Hair relaxers/perms: elevated DEP + other phthalates
+  nail  : 250,  // Nail polish/remover: DEP + DBP (absorbed via skin + inhalation)
+  vinyl : 150,  // Occupational inhalation (vinyl, construction)
+  dust  : 150,  // House dust ingestion/inhalation
+  lotion: 300   // Fragranced lotion on large skin areas
+};
+
+// DBP µg/day absolute (Marsee et al. median DBP from all sources:
+// 0.99 µg/kg/day ≈ 69 µg/day for 70 kg; nail/hair products estimated fraction).
+const DBP_UG = { nail: 80, hair: 120 };
+
+function calcFoodDEHP(prefix, keys) {
+  let breakdown = {}, total = 0;
+  keys.forEach(k => {
+    const serv = parseFloat($(prefix + k)?.value) || 0;
+    const ug = CONC[k] * (serv * SERV[k] / 1000); // µg/kg × kg = µg
+    breakdown[k] = ug; total += ug;
+  });
+  return { breakdown, total };
+}
+
+const FOOD_KEYS_GEN  = ['cereals','rmeat','poultry','fdairy','ldairy','rootveg','greens','fruit','fish','oil','proc','canned','pickled','water','bev','sweets'];
+const FOOD_KEYS_PRE  = ['cereals','rmeat','poultry','fdairy','ldairy','rootveg','greens','fruit','fish','oil','proc','canned','water','bev'];
+
+// ── RISK LEVEL ────────────────────────────────────────────────────────────
+const TDI_EFSA = 50;   // µg/kg/day DEHP
+const RFD_EPA  = 20;   // µg/kg/day DEHP (more conservative)
+
+function riskLevel(pctEPA) {
+  if (pctEPA < 25) return { cls:'risk-low',  label:'LOW RISK',  color:'var(--green)' };
+  if (pctEPA < 75) return { cls:'risk-mod',  label:'MODERATE',  color:'var(--yellow)' };
+  if (pctEPA < 150)return { cls:'risk-high', label:'ELEVATED',  color:'var(--orange)' };
+  return              { cls:'risk-vhi',  label:'HIGH RISK', color:'var(--red)' };
+}
+
+function renderDoseCard(doseEl, badgeEl, barEl, barLblEl, barPctEl, summaryEl, dehp_ukgd, isPregnant) {
+  const pctEPA  = (dehp_ukgd / RFD_EPA) * 100;
+  const pctTDI  = (dehp_ukgd / TDI_EFSA)* 100;
+  const rv = riskLevel(pctEPA);
+
+  doseEl.textContent = dehp_ukgd.toFixed(1);
+  doseEl.style.color = rv.color;
+  badgeEl.className  = 'risk-badge ' + rv.cls;
+  badgeEl.textContent = rv.label;
+
+  barEl.style.width      = Math.min(pctTDI, 200) + '%';
+  barEl.style.background = rv.color;
+  barLblEl.textContent   = `EFSA TDI: ${TDI_EFSA} µg/kg/day  |  EPA RfD: ${RFD_EPA} µg/kg/day`;
+  barPctEl.textContent   = pctTDI.toFixed(0) + '% of EFSA TDI';
+
+  let txt = `Your estimated dietary DEHP exposure is <strong>${dehp_ukgd.toFixed(1)} µg/kg bw/day</strong> — ${pctTDI.toFixed(0)}% of the EFSA tolerable daily intake and ${pctEPA.toFixed(0)}% of the US EPA reference dose.`;
+  if (isPregnant) {
+    txt += pctEPA < 25 ? ' While below regulatory limits, there is no proven safe threshold during fetal development — reducing exposure is always worthwhile.'
+         : pctEPA < 75 ? ' During pregnancy, regulatory limits provide only a general guide; fetal development can be sensitive even below these thresholds.'
+         : ' This is above the EPA reference dose. Meaningful exposure reduction is especially important during pregnancy.';
+  } else {
+    txt += pctEPA < 25 ? ' This is within currently accepted regulatory ranges.' : pctEPA < 75 ? ' Consider reducing key exposure sources.' : ' Above the EPA reference dose — reducing exposure is recommended.';
+  }
+  summaryEl.innerHTML = txt;
+}
+
+function renderSourceBreakdown(containerEl, breakdown, plasticUg, weight, prefix) {
+  const all = Object.entries(breakdown).map(([k,v]) => ({ label: FOOD_LABEL[k]||k, ug: v }));
+  if (plasticUg > 0) all.push({ label: 'Plastic/packaging habits', ug: plasticUg });
+  all.sort((a,b) => b.ug - a.ug);
+  const tot = all.reduce((s,x) => s + x.ug, 0);
+  containerEl.innerHTML = all.filter(x => x.ug > 0.1).slice(0,12).map(x => {
+    const pct = tot > 0 ? ((x.ug/tot)*100).toFixed(0) : 0;
+    return `<div class="src-item">
+      <div class="src-name">${x.label}</div>
+      <div class="src-val">${x.ug.toFixed(1)} µg/day</div>
+      <div class="src-pct">${pct}% of total</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  GENERAL CALCULATOR
+// ══════════════════════════════════════════════════════════════════════
+function calcGeneral() {
+  const age    = parseFloat($('g-age').value) || 35;
+  const weight = parseFloat($('g-weight').value) || 70;
+  const sex    = checked('g-sex');
+  const stage  = checked('g-stage') || 'adult';
+  const isChild = stage === 'child' || age < 13;
+  const isMale  = sex === 'male';
+  const isFemale= sex === 'female';
+
+  // food DEHP
+  const { breakdown, total: foodUg } = calcFoodDEHP('gd-', FOOD_KEYS_GEN);
+
+  // plastic DEHP
+  const ids = { micro:'gp-micro', pvcwrap:'gp-pvcwrap', store:'gp-store', bottle:'gp-bottle', medical:'gp-medical' };
+  let plasticUg = 0;
+  Object.entries(ids).forEach(([k,id]) => { if(isChecked(id)) plasticUg += PLASTIC_UG[k]; });
+
+  const totalDEHP_ug = foodUg + plasticUg;
+  const dehp_ukgd    = totalDEHP_ug / weight;
+
+  // personal care DEP/DBP
+  let depUg = 0, dbpUg = 0;
+  if(isChecked('gc-perf'))  depUg += CARE_UG.perf;
+  if(isChecked('gc-hair'))  { depUg += CARE_UG.hair; dbpUg += DBP_UG.hair; }
+  if(isChecked('gc-nail'))  { depUg += CARE_UG.nail; dbpUg += DBP_UG.nail; }
+  if(isChecked('gc-vinyl')) depUg += CARE_UG.vinyl;
+  if(isChecked('gc-dust'))  depUg += CARE_UG.dust;
+  const dep_ukgd = depUg / weight;
+  const dbp_ukgd = dbpUg / weight;
+  const hasPersonalCare = depUg > 0;
+
+  const pctEPA = (dehp_ukgd / RFD_EPA) * 100;
+
+  // render main card
+  renderDoseCard($('gr-dose'),$('gr-badge'),$('gr-bar'),$('gr-bar-label'),$('gr-bar-pct'),$('gr-summary'), dehp_ukgd, false);
+
+  // Hazard Index (DEHP + DEP + DBP scaled to their RfDs)
+  const hiDEHP = dehp_ukgd / RFD_EPA;
+  const hiDEP  = dep_ukgd  / 800;
+  const hiDBP  = dbp_ukgd  / 100;
+  const hiTotal = hiDEHP + hiDEP + hiDBP;
+
+  if (hasPersonalCare) {
+    $('gr-hi-section').style.display = 'block';
+    $('gr-hi-content').innerHTML = `
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px">The Hazard Index (HI) sums each phthalate's exposure ÷ its reference dose. HI > 1 suggests cumulative risk from multiple phthalates may exceed acceptable limits.</p>
+      <div class="sources-grid">
+        <div class="src-item"><div class="src-name">DEHP (food + plastics)</div><div class="src-val">${dehp_ukgd.toFixed(1)} µg/kg/day</div><div class="src-pct">HI contribution: ${hiDEHP.toFixed(2)}</div></div>
+        <div class="src-item"><div class="src-name">DEP (personal care)</div><div class="src-val">~${dep_ukgd.toFixed(0)} µg/kg/day</div><div class="src-pct">HI contribution: ${hiDEP.toFixed(2)}</div></div>
+        <div class="src-item"><div class="src-name">DBP (nail/hair)</div><div class="src-val">~${dbp_ukgd.toFixed(1)} µg/kg/day</div><div class="src-pct">HI contribution: ${hiDBP.toFixed(2)}</div></div>
+        <div class="src-item" style="background:${hiTotal>1?'var(--red-bg)':'var(--green-bg)'}">
+          <div class="src-name">Total Hazard Index</div>
+          <div class="src-val" style="color:${hiTotal>1?'var(--red)':'var(--green)'};font-size:1.3rem">${hiTotal.toFixed(2)}</div>
+          <div class="src-pct">${hiTotal > 1 ? 'Above 1 — cumulative risk concern' : 'Below 1 — within acceptable range'}</div>
+        </div>
+      </div>`;
+  } else {
+    $('gr-hi-section').style.display = 'none';
+  }
+
+  // sources
+  renderSourceBreakdown($('gr-sources'), breakdown, plasticUg, weight, 'gd-');
+
+  // harms
+  const harms = [
+    { icon:'⚖️', flag:'gen', title:'Endocrine Disruption', text:'DEHP is a confirmed endocrine disruptor that interferes with estrogen and androgen signaling. This underlies most downstream reproductive, developmental, and metabolic effects.' },
+  ];
+  if (isMale || stage === 'senior') {
+    harms.push({ icon:'🔬', flag:'you', title:'Testosterone & Sex Hormones (Men)',
+      text:`NHANES data (n=1,420 men) show DEHP exposure associates with ~2.2% lower total testosterone overall, and up to 8% lower testosterone, 6% lower estradiol, and significantly lower free testosterone in men ≥60 years. All phthalate-hormone associations were in the negative direction (Woodward et al. 2020).` });
+    harms.push({ icon:'🧬', flag:'you', title:'Male Reproductive Tract',
+      text:'DEHP activates oxidative stress pathways in Leydig cells, impairing the cAMP/PKA/SF-1/StAR testosterone synthesis cascade. Animal studies show reduced semen volume and sperm count; microplastics (including PVC) were detected in 44% of human semen samples and 100% of analyzed testis samples (Zhao et al. 2023).' });
+  }
+  if (isFemale) {
+    harms.push({ icon:'♀️', flag:'you', title:'Female Reproductive Health',
+      text:'Long-term dietary DEHP exposure at 0.15 ppm (24 µg/kg/day — within typical human exposure) significantly altered estrous cyclicity in mice. DiNP at higher doses reduced gestational index and birth rate. Human epidemiological data associate phthalate exposure with endometriosis and ovarian function changes (Laws et al. 2023).' });
+  }
+  if (isChild) {
+    harms.push({ icon:'🧒', flag:'you', title:'Children: Higher Dose & Greater Vulnerability',
+      text:'Children receive 2–3× higher phthalate doses per kg body weight from the same foods as adults. They also ingest phthalates via house dust, which contains 0.30–524 µg/g phthalates. Developmental windows are highly sensitive to hormone disruption. The EFSA TDI may not fully protect children.' });
+  }
+  harms.push({ icon:'🧠', flag:'gen', title:'Neurodevelopmental Concerns',
+    text:'Prenatal DEHP exposure in animal studies causes hippocampal neurodegeneration (reduced neurons in CA1/CA2), spatial memory impairment, anxiety, and neuroinflammation in adult offspring. Human studies associate maternal phthalate exposure with lower cognitive scores and ADHD diagnosis in children.' });
+  harms.push({ icon:'🫀', flag:'gen', title:'Liver & Metabolic Effects',
+    text:'Hepatic peroxisome proliferation is observed at DEHP doses ~2.5 mg/kg/day in animals (the WHO NOAEL). At typical human exposures this is a low-level concern, but cumulative phthalate body burden may compound metabolic risk, especially with obesity or high-fat diets.' });
+  if (isChecked('gp-medical')) {
+    harms.push({ icon:'🏥', flag:'you', title:'Medical Device Exposure',
+      text:'IV bags, blood bags, and tubing made of PVC contain 20–40% DEHP by weight. Patients receiving infusions or using catheters can receive substantial doses — often exceeding dietary exposure. Discuss phthalate-free medical devices with your healthcare team when clinically feasible.' });
+  }
+
+  $('gr-harms').innerHTML = harms.map(h => `<li class="harm-item">
+    <span class="harm-icon">${h.icon}</span>
+    <div class="harm-text"><h4>${h.title}<span class="flag ${h.flag==='you'?'flag-you':'flag-gen'}">${h.flag==='you'?'Relevant to you':'General'}</span></h4>
+    <p>${h.text}</p></div></li>`).join('');
+
+  // tips
+  const tips = [];
+  if(isChecked('gp-micro'))  tips.push({i:'🍽️', t:'Replace microwaving in plastic with glass, ceramic, or stainless-steel containers. This single change can significantly reduce DEHP migration, which multiplies dramatically at high temperatures.'});
+  if(isChecked('gc-perf'))   tips.push({i:'🌿', t:'Switch to phthalate-free or fragrance-free personal care products. Search for "phthalate-free" or check that "parfum" / "fragrance" is absent — DEP is one of the most common fragrance fixatives.'});
+  if(isChecked('gc-hair'))   tips.push({i:'💇', t:'Look for hair products explicitly labeled phthalate-free. Researchers have flagged products marketed to Black and Latina women as having disproportionately high phthalate content.'});
+  if(isChecked('gc-nail'))   tips.push({i:'💅', t:'Choose "3-free" or "5-free" nail polishes (which exclude DBP, toluene, and formaldehyde). Many safer alternatives now exist.'});
+  if(isChecked('gp-bottle')) tips.push({i:'💧', t:'Use glass, stainless-steel, or ceramic water bottles instead of single-use plastic. Never leave plastic water bottles in hot cars — heat dramatically increases phthalate release.'});
+  if(isChecked('gc-dust'))   tips.push({i:'🏠', t:'Vacuum with a HEPA filter and damp-mop hard floors regularly. Phthalate-laden house dust is a major exposure route for children and adults with old vinyl flooring or wallpaper.'});
+  const oilUg = breakdown['oil'] || 0;
+  const meatUg = (breakdown['rmeat']||0) + (breakdown['poultry']||0);
+  if (oilUg > 0.3 * foodUg) tips.push({i:'🥗', t:'Cooking oils are among the highest DEHP sources (404–5,591 µg/kg). Try steaming, baking, or using less oil. When using oil, store in glass and avoid overheating.'});
+  if (meatUg > 0.3 * foodUg) tips.push({i:'🥦', t:'Meat and poultry contribute significantly to phthalate intake — partially from plastic food packaging contact. Choosing fresh cuts wrapped in paper, or reducing portion sizes, lowers exposure.'});
+  if(isChecked('gp-pvcwrap'))tips.push({i:'📦', t:'Avoid PVC/soft plastic food wraps for fatty foods. Use beeswax wraps, parchment paper, foil, or transfer to glass containers instead.'});
+  tips.push({i:'🧃', t:'Choose whole fresh foods over packaged or jarred alternatives wherever possible. Studies consistently show lower urinary phthalate metabolite levels in people with diets high in fresh produce and low in processed food.'});
+  tips.push({i:'🏷️', t:'Look for "phthalate-free" on personal care and food storage product labels. In the US, the CPSIA permanently banned DEHP, DBP, and BBP above 0.1% in children\'s products — choose products that go further.'});
+
+  $('gr-tips').innerHTML = tips.map(t => `<li class="tip-item"><span class="tip-icon">${t.i}</span><span>${t.t}</span></li>`).join('');
+
+  $('g-results').style.display = 'block';
+  setTimeout(() => $('g-results').scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  PRENATAL CALCULATOR
+// ══════════════════════════════════════════════════════════════════════
+// ── PK MODEL ─────────────────────────────────────────────────────────────
+function renderPKModel(totalDEHP_ug, weight, isPreg) {
+  // 1-compartment steady-state: Css = (F × dose) / (ke × Vd × BW)
+  // MEHP: F=0.8, t½=12h → ke=1.386/day, Vd=0.5 L/kg
+  // Placental transfer fraction ~0.70 (fetal:maternal MEHP ratio from cord blood studies)
+  const F=0.8, ke=1.386, Vd=0.5, pf=0.70;
+  const absorbed = F * totalDEHP_ug;
+  const Css_m = absorbed / (ke * Vd * weight);  // µg/L = ng/mL
+  const Css_f = Css_m * pf;
+  const fmt = v => v < 1 ? v.toFixed(2) : v.toFixed(1);
+  return `
+<div class="section-title rose" style="color:var(--primary)">How Your Body Processes It</div>
+<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px;line-height:1.5">Simplified 1-compartment steady-state pharmacokinetic model. Assumes oral bioavailability F = 0.8, MEHP half-life t½ = 12 h, Vd = 0.5 L/kg. MEHP is the main active DEHP metabolite measured in urine and blood. Individual metabolism varies substantially.</p>
+<div class="pk-flow">
+  <div class="pk-box">
+    <div class="pk-box-label">Daily DEHP intake</div>
+    <div class="pk-box-val">${totalDEHP_ug.toFixed(0)} µg / day</div>
+  </div>
+  <div class="pk-arrow">↓ &nbsp;80% absorbed &amp; converted to MEHP in gut/liver</div>
+  <div class="pk-box">
+    <div class="pk-box-label">MEHP entering circulation</div>
+    <div class="pk-box-val">${absorbed.toFixed(0)} µg / day</div>
+  </div>
+  <div class="pk-arrow">↓ &nbsp;steady-state reached in ~30 h (2–3 half-lives)</div>
+  <div class="pk-box">
+    <div class="pk-box-label">Maternal blood — steady-state MEHP</div>
+    <div class="pk-box-val">${fmt(Css_m)} ng/mL</div>
+  </div>
+  <div class="pk-arrow">↓</div>
+  <div class="pk-split">
+    <div class="pk-split-arm">
+      <div class="pk-arrow">↓</div>
+      <div class="pk-box kidney">
+        <div class="pk-box-label">Kidney clearance (urine)</div>
+        <div class="pk-box-val">${absorbed.toFixed(0)} µg / day MEHP</div>
+        <div class="pk-note">What NHANES urine tests measure</div>
+      </div>
+    </div>
+    ${isPreg ? `
+    <div class="pk-split-arm">
+      <div class="pk-arrow">↓</div>
+      <div class="pk-box fetal">
+        <div class="pk-box-label">Placenta → fetal exposure (~70%)</div>
+        <div class="pk-box-val">${fmt(Css_f)} ng/mL</div>
+        <div class="pk-note">Estimated fetal MEHP concentration</div>
+      </div>
+    </div>` : ''}
+  </div>
+</div>
+<div class="pk-meta">
+  <div class="pk-chip"><strong>t½</strong> ~12 hours</div>
+  <div class="pk-chip"><strong>Steady-state</strong> ~30 hours</div>
+  <div class="pk-chip"><strong>Urine output</strong> ${absorbed.toFixed(0)} µg/day MEHP</div>
+  ${isPreg ? `<div class="pk-chip"><strong>Placental transfer</strong> ~70% of maternal MEHP</div>` : ''}
+  <div class="pk-chip"><strong>Model</strong> 1-compartment SS</div>
+</div>`;
+}
+
+// ── WHAT-IF SANDBOX ───────────────────────────────────────────────────────
+let _sb = null;
+
+function initSandbox(data) {
+  _sb = data;
+  const el = $('pr-sandbox');
+  el.style.display = 'block';
+  const {baseHI, dairyFat_ug, canned_ug, meat_ug, perf_ug, hasMicro, takesPV, pvForm, weight} = data;
+
+  const tgls = [];
+  const hiClr = v => v > 1 ? 'var(--red)' : v > 0.5 ? 'var(--orange)' : v > 0.25 ? 'var(--yellow)' : 'var(--green)';
+
+  if(dairyFat_ug > 3)   tgls.push({ id:'sb-dairy',  title:'Switch full-fat dairy to glass-bottled or fresh',           sub:`Dairy contributes ~${dairyFat_ug.toFixed(0)} µg DEHP/day. Plastic-packaged full-fat dairy absorbs DEHP from packaging; glass or fresh reduces this ~70%.`,                  dHI:-(dairyFat_ug*0.7/weight/RFD_EPA) });
+  if(perf_ug > 0)        tgls.push({ id:'sb-frag',   title:'Switch to fragrance-free personal care products',           sub:`Fragranced products contribute ~${perf_ug.toFixed(0)} µg DEP/day to your total. Fragrance-free eliminates the main DEP source in personal care.`,                          dHI:-(perf_ug/weight/800) });
+  if(hasMicro)           tgls.push({ id:'sb-micro',  title:'Stop microwaving food in plastic — use glass or ceramic',   sub:'Microwaving in plastic generates the highest dietary DEHP per single behaviour. Switching containers removes ~50 µg DEHP/day.',                                            dHI:-(50/weight/RFD_EPA) });
+  if(canned_ug > 3)      tgls.push({ id:'sb-canned', title:'Swap canned foods for fresh or frozen equivalents',         sub:`Canned foods contribute ~${canned_ug.toFixed(0)} µg DEHP/day via can lining contact. Fresh or frozen equivalents have much lower concentrations.`,                     dHI:-(canned_ug/weight/RFD_EPA) });
+  if(takesPV && pvForm==='capsule') tgls.push({ id:'sb-pvit', title:'Switch prenatal vitamin to tablet form', sub:'Capsule-form vitamins had 51% phthalate detection rate vs. much lower for tablets (Gardener 2025). Switching removes ~9 µg DEHP/day.', dHI:-((12-3)/weight/RFD_EPA) });
+  if(meat_ug > 15)       tgls.push({ id:'sb-meat',   title:'Choose fresh paper-wrapped meat over plastic-wrapped',      sub:`Meat/poultry contributes ~${meat_ug.toFixed(0)} µg DEHP/day. Plastic-film wrapping increases phthalate migration into fat; paper-wrapped or butcher-counter reduces this ~40%.`, dHI:-(meat_ug*0.4/weight/RFD_EPA) });
+
+  _sb._tgls = tgls;
+
+  el.innerHTML = `
+<div class="section-title" style="color:var(--green)">What-If Sandbox — See Your Score Drop in Real Time</div>
+<p style="font-size:.83rem;color:var(--muted);line-height:1.55;margin-bottom:14px">Your Hazard Index (HI) combines DEHP, DEP, and DBP relative to their reference doses. HI &gt; 1 means combined phthalate exposure may exceed acceptable limits. Toggle switches below to see the impact of specific changes.</p>
+<div class="sandbox-score">
+  <div class="sb-score-col">
+    <div class="sb-hi-label">Current HI</div>
+    <div class="sb-hi-now" style="color:${hiClr(baseHI)}">${baseHI.toFixed(2)}</div>
+  </div>
+  <div class="sb-arrow">→</div>
+  <div class="sb-score-col">
+    <div class="sb-hi-label">With your changes</div>
+    <div class="sb-hi-new" id="sb-new-hi" style="color:${hiClr(baseHI)}">${baseHI.toFixed(2)}</div>
+  </div>
+  <div class="sb-pct-badge" id="sb-pct-badge"></div>
+</div>
+${tgls.length === 0
+  ? '<p style="font-size:.84rem;color:var(--green);font-weight:600">Based on your inputs, you are already avoiding the main controllable exposure sources. ✓</p>'
+  : tgls.map(t=>`
+<div class="sandbox-toggle">
+  <div class="sb-tinfo">
+    <div class="sb-ttitle">${t.title}</div>
+    <div class="sb-tsub">${t.sub}</div>
+    <div class="sb-timpact" id="${t.id}-imp"></div>
+  </div>
+  <label class="sb-switch">
+    <input type="checkbox" id="${t.id}" onchange="updateSandbox()">
+    <span class="sb-slider"></span>
+  </label>
+</div>`).join('')}`;
+}
+
+function updateSandbox() {
+  if(!_sb) return;
+  const {baseHI, _tgls} = _sb;
+  const hiClr = v => v > 1 ? 'var(--red)' : v > 0.5 ? 'var(--orange)' : v > 0.25 ? 'var(--yellow)' : 'var(--green)';
+
+  let delta = 0;
+  _tgls.forEach(t => { const el = $(t.id); if(el && el.checked) delta += t.dHI; });
+
+  const newHI  = Math.max(0, baseHI + delta);
+  const pctDrop = baseHI > 0 ? Math.round((baseHI - newHI) / baseHI * 100) : 0;
+
+  const newEl  = $('sb-new-hi');
+  const pctEl  = $('sb-pct-badge');
+  if(newEl) { newEl.textContent = newHI.toFixed(2); newEl.style.color = hiClr(newHI); }
+  if(pctEl) {
+    if(pctDrop > 0) { pctEl.style.display='inline-block'; pctEl.textContent=`↓ ${pctDrop}% reduction`; }
+    else              pctEl.style.display='none';
+  }
+
+  _tgls.forEach(t => {
+    const el  = $(t.id);
+    const imp = $(t.id+'-imp');
+    if(el && imp) {
+      if(el.checked) {
+        const share = baseHI > 0 ? Math.round(Math.abs(t.dHI)/baseHI*100) : 0;
+        imp.style.display='block';
+        imp.textContent = `↓ removes ~${share}% of your HI`;
+      } else {
+        imp.style.display='none';
+      }
+    }
+  });
+}
+
+function calcPrenatal() {
+  const weight = parseFloat($('p-weight').value) || 65;
+  const age    = parseFloat($('p-age').value)    || 28;
+  const status = checked('p-status') || 't2';
+  const eth    = checked('p-eth')    || 'other';
+  const pvForm = checked('pv-form')  || 'tablet';
+  const takesPV = checked('pv-yn') === 'yes';
+  const isPreg  = ['t1','t2','t3'].includes(status);
+  const isTTC   = status === 'ttc';
+  const isPP    = status === 'postpartum';
+
+  // food
+  const { breakdown, total: foodUg } = calcFoodDEHP('pd-', FOOD_KEYS_PRE);
+
+  // plastic
+  let plasticUg = 0;
+  if(isChecked('pp-micro'))   plasticUg += PLASTIC_UG.micro;
+  if(isChecked('pp-bottle'))  plasticUg += PLASTIC_UG.bottle;
+  if(isChecked('pp-medical')) plasticUg += PLASTIC_UG.medical;
+
+  // personal care
+  let depUg = 0, dbpUg = 0;
+  if(isChecked('pc-perf'))   depUg += CARE_UG.perf;
+  if(isChecked('pc-hair'))   { depUg += CARE_UG.hair; dbpUg += DBP_UG.hair; }
+  if(isChecked('pc-nail'))   { depUg += CARE_UG.nail; dbpUg += DBP_UG.nail; }
+  if(isChecked('pc-lotion')) depUg += CARE_UG.lotion;
+
+  // vinyl
+  if(isChecked('pp-vinyl')) plasticUg += PLASTIC_UG.pvcwrap;
+
+  // prenatal vitamins
+  let pvUg = 0;
+  // Gardener 2025: DEHP in 25% of OTC prenatals; capsule form 51% detection rate;
+  // max 28.92 µg/serving. Values below are modest averages across positive detections.
+  if(takesPV) pvUg = pvForm === 'capsule' ? 12 : 3;
+
+  const totalDEHP_ug = foodUg + plasticUg + pvUg;
+  const dehp_ukgd    = totalDEHP_ug / weight;
+  const pctEPA       = (dehp_ukgd / RFD_EPA) * 100;
+  const pctTDI       = (dehp_ukgd / TDI_EFSA)* 100;
+
+  // ethnic multiplier note
+  const highEth = eth === 'black' || eth === 'latina';
+
+  // main dose card
+  renderDoseCard($('pr-dose'),$('pr-badge'),$('pr-bar'),$('pr-bar-label'),$('pr-bar-pct'),$('pr-summary'), dehp_ukgd, true);
+
+  // PK Model
+  $('pr-pk').style.display = 'block';
+  $('pr-pk').innerHTML = renderPKModel(totalDEHP_ug, weight, isPreg);
+
+  // ── Trimester Timeline ───────────────────────────────────────────────
+  const phases = [
+    {
+      id:'ttc', name:'Pre-Conception', weeks:'Before pregnancy',
+      risk:'Epigenetic programming of eggs; phthalate exposure affects egg quality and can cause heritable (F2) methylation changes in germ cells even at 40 µg/kg/day.',
+      active: isTTC
+    },
+    {
+      id:'t1', name:'1st Trimester', weeks:'Weeks 1–12',
+      risk:'Most critical window: organogenesis, placental formation, and anogenital distance (AGD) determination in male fetuses. Placental EGFR methylation disrupted (Grindler 2018).',
+      active: status === 't1'
+    },
+    {
+      id:'t2', name:'2nd Trimester', weeks:'Weeks 13–26',
+      risk:'Brain circuit formation, hippocampal development, fetal testosterone synthesis and reproductive tract differentiation. ECHO cohort shows T2 metabolite levels are highest.',
+      active: status === 't2'
+    },
+    {
+      id:'t3', name:'3rd Trimester', weeks:'Weeks 27–40',
+      risk:'Neurotransmitter system maturation (tyrosine/tryptophan → attention & arousal). Strongest association with preterm birth (Trasande 2024). Birth weight determination.',
+      active: status === 't3'
+    },
+    {
+      id:'pp', name:'Postpartum', weeks:'After birth',
+      risk:'Microplastics detected in 39% of breast milk samples (Saraluck 2024). Prenatal phthalate exposure associated with postpartum depression. Infant exposure via breast milk.',
+      active: isPP
+    }
+  ];
+
+  $('pr-timeline').innerHTML = phases.map(p => `
+    <div class="tphase ${p.active ? 'active-phase' : ''}">
+      <span class="phase-name">${p.name}</span>
+      <span class="phase-weeks">${p.weeks}</span>
+      <span class="phase-risk">${p.risk}</span>
+    </div>`).join('');
+
+  const activePhase = phases.find(p => p.active) || phases[2];
+  $('pr-timeline-note').innerHTML = `<strong>Your current window: ${activePhase.name}</strong>${activePhase.risk}`;
+
+  // ── Outcome Cards ────────────────────────────────────────────────────
+  const outcomes = [
+    {
+      icon: '🕐',
+      title: 'Giving birth early',
+      plain: 'Mothers with higher levels of DEHP in their urine were <strong>45% more likely</strong> to give birth before 37 weeks. Across 5,006 pregnancies in the US, this was one of the most consistent findings.',
+      stat: 'Technical: OR 1.45 per log₁₀ increase in ΣDEHP urinary metabolites · Trasande et al. 2024, Lancet Planet Health (ECHO Program)'
+    },
+    {
+      icon: '📦',
+      title: 'Early birth from packaging chemicals',
+      plain: 'DiNP is now used in food packaging as a replacement for DEHP after DEHP was restricted. Mothers with higher DiNP levels were <strong>more than twice as likely</strong> to give birth early — suggesting the replacement isn\'t necessarily safer.',
+      stat: 'Technical: OR 2.25 per log₁₀ increase in DiNP metabolites · Trasande et al. 2024'
+    },
+    {
+      icon: '⚖️',
+      title: 'Lower birth weight',
+      plain: 'Babies were <strong>27% more likely to be born underweight</strong> (under 2.5 kg) when their mothers had higher levels of a phthalate that mainly comes from fragrances and personal care products.',
+      stat: 'Technical: RR 1.27 for MEP (monoethyl phthalate, marker of DEP) · Zang et al. 2023'
+    },
+    {
+      icon: '👦',
+      title: 'Hormonal development in baby boys',
+      plain: 'Male babies born to mothers with higher phthalate levels were born with a shorter distance between their genitals and anus. This measurement is a well-established marker of how much male hormones were active during fetal development — a smaller distance suggests the hormonal signal was interfered with.',
+      stat: 'Technical: Anogenital index significantly reduced · Swan et al. 2005; Marsee et al. 2006'
+    },
+    {
+      icon: '💬',
+      title: 'Social communication in children',
+      plain: 'Children whose mothers had higher DEHP levels during pregnancy scored <strong>noticeably higher on a social communication screening tool</strong> at age 4 — the same checklist clinicians use to assess autism-related traits. The association was strongest in boys.',
+      stat: 'Technical: +8.5% change in SCQ score per IQR increase in MEHHP · Kim et al. 2021 (Korean birth cohort)'
+    },
+    {
+      icon: '🧠',
+      title: 'ADHD in children',
+      plain: 'Children were <strong>significantly more likely to be diagnosed with ADHD</strong> when their mothers had higher phthalate levels measured at weeks 17 and 30 of pregnancy. This was a study of 850 families followed over years with confirmed clinical diagnoses.',
+      stat: 'Technical: Increased odds of ADHD diagnosis · Barrett 2019 (Norwegian MoBa cohort)'
+    },
+    {
+      icon: '👶',
+      title: 'Newborn alertness at birth',
+      plain: 'Newborns whose mothers had higher levels of a food-related phthalate (from packaging) <strong>scored lower on alertness and attention tests</strong> in the first days of life. Researchers traced this to disruption of brain chemistry — specifically the pathways that make serotonin and dopamine precursors — while the baby was still in the womb.',
+      stat: 'Technical: MBP associated with lower NNNS attention and arousal via tryptophan/tyrosine metabolite disruption · Hoffman et al. 2025'
+    },
+    {
+      icon: '🌧️',
+      title: 'Postpartum depression',
+      plain: 'Across 2,174 women in 5 US research programmes, those with higher phthalate levels during pregnancy were <strong>more likely to experience depression after giving birth</strong>. Phthalates may affect the hormone systems involved in mood regulation, which shift dramatically after delivery.',
+      stat: 'Technical: Higher prenatal HMW phthalate concentrations associated with greater PPD symptoms · Jacobson et al., JAMA Psychiatry (ECHO Program)'
+    },
+  ];
+
+  $('pr-outcomes').innerHTML = outcomes.map(o => `
+    <div class="oc2">
+      <div class="oc2-icon">${o.icon}</div>
+      <div class="oc2-title">${o.title}</div>
+      <div class="oc2-plain">${o.plain}</div>
+      <div class="oc2-stat">${o.stat}</div>
+    </div>`).join('');
+
+  // ── Postpartum section ───────────────────────────────────────────────
+  if (isPP) {
+    $('pr-pp-section').style.display = 'block';
+    $('pr-pp-content').innerHTML = `
+      <div class="callout warning" style="margin-bottom:10px">
+        <strong>Microplastics in Breast Milk</strong>
+        A 2024 study (Saraluck et al.) detected microplastics in <strong>39% of breast milk samples</strong> from 59 postpartum women, analyzed within 3 days of birth. The most common polymers were PP, PE, and PVC — the same plastics associated with phthalate contamination. Mothers with better hygiene practices (e.g., washing breasts before expressing) had significantly lower detection rates.
+      </div>
+      <div class="callout info">
+        <strong>Postpartum Depression Risk</strong>
+        A 2024 ECHO program study (n=2,174 women across 5 US cohorts) found that higher prenatal HMW phthalate concentrations were significantly associated with greater postpartum depressive symptoms. The authors identify phthalates as a "potentially modifiable risk factor" for PPD. If you're experiencing PPD symptoms, mentioning environmental chemical exposure to your provider may be relevant.
+      </div>
+      <div class="callout tip">
+        <strong>Still Worth Reducing Exposure While Breastfeeding</strong>
+        Reducing your own ongoing phthalate exposure also reduces the concentration passed to your infant through milk. The same dietary and product swaps apply: prioritise glass containers, reduce fragranced products, and avoid microwaving in plastic.
+      </div>`;
+  } else {
+    $('pr-pp-section').style.display = 'none';
+  }
+
+  // ── Sources ──────────────────────────────────────────────────────────
+  const bdWithPV = Object.assign({}, breakdown);
+  if (pvUg > 0) bdWithPV['prenatalVitamins'] = pvUg;
+  FOOD_LABEL['prenatalVitamins'] = 'Prenatal Vitamins';
+  renderSourceBreakdown($('pr-sources'), bdWithPV, plasticUg + (pvUg > 0 ? 0 : 0), weight, 'pd-');
+
+  // ── Tips ─────────────────────────────────────────────────────────────
+  const tips = [];
+
+  // Oil is almost always top contributor
+  const oilUg = breakdown['oil']||0;
+  if (oilUg > 10) tips.push({i:'🛢️', t:'<strong>Priority 1 — Cooking Oil:</strong> Vegetable oils have among the highest DEHP concentrations of any food (404–5,591 µg/kg measured range). Use less oil, choose stainless-steel cookware, and store oil in glass not plastic. This alone can substantially cut your intake.'});
+
+  if(isChecked('pp-micro')) tips.push({i:'🍽️', t:'<strong>Priority — Microwaving:</strong> Transfer all food to glass or ceramic before heating. Plastic containers release phthalates rapidly under heat; this is the single easiest switch with the largest impact on dietary exposure.'});
+
+  const meatUg = (breakdown['rmeat']||0) + (breakdown['poultry']||0);
+  if (meatUg > 50) tips.push({i:'🥩', t:'Meat and poultry absorb phthalates from fatty tissue and plastic packaging. Choose fresh cuts wrapped in paper, or reduce frequency. Even one fewer meat serving per day may reduce DEHP intake by 20–30 µg.'});
+
+  if(isChecked('pc-perf')) tips.push({i:'🌸', t:'<strong>Personal Care:</strong> Switch to phthalate-free or fragrance-free body wash, lotion, and perfume during pregnancy. Your skin absorbs DEP readily; research shows pregnant women using many fragranced products have significantly higher urinary DEP levels.'});
+
+  if(isChecked('pc-hair'))  tips.push({i:'💇', t:'Hair relaxers, perms, and some styling products contain phthalates. Look for explicit "phthalate-free" labeling. This matters especially because research links higher exposure in Black and Latina women to hair products marketed specifically to them.'});
+
+  if(isChecked('pc-nail'))  tips.push({i:'💅', t:'Use "3-free" or "5-free" nail polishes during pregnancy. If you work as a nail technician, ensure good ventilation and consider N95 respiratory protection — inhalation exposure is a real route in salon environments.'});
+
+  if(takesPV && pvForm === 'capsule') tips.push({i:'💊', t:'<strong>Prenatal Vitamins:</strong> Capsule-form vitamins had the highest phthalate detection rate (51%) among 156 OTC prenatal vitamins tested (Gardener 2025). Consider switching to a tablet or gummy formulation, or asking your provider about tested products. DEHP was detected in 25% of all OTC prenatals.'});
+
+  if(isChecked('pp-medical')) tips.push({i:'🏥', t:'Medical devices with PVC tubing can be a significant DEHP source. Ask your care team about phthalate-free alternatives for IV tubing, blood bags, and other medical equipment — these exist and are increasingly available.'});
+
+  if(isChecked('pp-vinyl')) tips.push({i:'🏠', t:'Ventilate your home regularly, especially in rooms with older vinyl flooring. Consider HEPA air purification. Damp-mop rather than sweep to prevent redistributing phthalate-containing dust.'});
+
+  tips.push({i:'🥬', t:'Increase your proportion of whole fresh foods — leafy greens and fresh fruit contain very low phthalate concentrations (10–12 µg/kg) versus canned or processed equivalents. A diet shift toward fresh produce consistently correlates with lower urinary phthalate metabolite levels.'});
+
+  tips.push({i:'💧', t:'Drink water from glass, stainless-steel, or ceramic vessels. If using a filter, ensure it\'s rated for volatile organic compounds. Filtered tap water in glass is typically cleaner than bottled water in plastic.'});
+
+  if (isPP) tips.push({i:'🤱', t:'While breastfeeding, continue reducing phthalate exposure for yourself — the same routes (diet, personal care, plastics) affect the phthalate content of your milk. Washing breasts before expressing and storing milk in glass may also help.'});
+
+  $('pr-tips').innerHTML = tips.map(t => `<li class="tip-item"><span class="tip-icon">${t.i}</span><span>${t.t}</span></li>`).join('');
+
+  // ── What-If Sandbox ──────────────────────────────────────────────────
+  const hiDEHP_s = dehp_ukgd / RFD_EPA;
+  const hiDEP_s  = depUg / weight / 800;
+  const hiDBP_s  = dbpUg / weight / 100;
+  initSandbox({
+    baseHI: hiDEHP_s + hiDEP_s + hiDBP_s,
+    weight,
+    dairyFat_ug: breakdown.fdairy || 0,
+    canned_ug:   breakdown.canned  || 0,
+    meat_ug:     (breakdown.rmeat  || 0) + (breakdown.poultry || 0),
+    perf_ug:     isChecked('pc-perf') ? CARE_UG.perf : 0,
+    hasMicro:    isChecked('pp-micro'),
+    takesPV, pvForm,
+    plasticUg, depUg, dbpUg, pvUg,
+  });
+
+  // ── Doctor talking points ────────────────────────────────────────────
+  const docPoints = [
+    'Mention that you want to minimize phthalate exposure during pregnancy and ask about phthalate-free IV and medical tubing options if hospitalization is planned.',
+    'Ask whether any prenatal vitamins or supplements your provider recommends have been tested for phthalate contamination (capsule forms have higher risk).',
+    'If you have occupational exposure to plastics, vinyl, or construction materials, discuss it — it may warrant monitoring.',
+  ];
+  if(isChecked('pc-hair')) docPoints.push('Mention your hair product use — some providers may not think to ask, but hair relaxers and perms have been identified as a meaningful phthalate source, particularly for Black and Latina women.');
+  if(pctEPA > 75) docPoints.push(`Your estimated DEHP intake (${dehp_ukgd.toFixed(1)} µg/kg/day) is above the US EPA reference dose. Share this estimate with your provider and discuss possible exposure reduction strategies.`);
+  if(isPP) docPoints.push('If experiencing postpartum mood changes, mention that research (ECHO program) has found an association between prenatal phthalate body burden and postpartum depression symptoms.');
+  if(highEth) docPoints.push('Environmental health disparities are real and documentable — research confirms higher phthalate body burdens in Black and Latina women. If you feel your environmental exposures haven\'t been discussed, ask specifically about them.');
+  docPoints.push('Ask about cord blood or meconium phthalate metabolite testing if you have significant occupational or environmental exposure — these can directly measure fetal exposure.');
+
+  $('pr-doctor').innerHTML = docPoints.map(d => `<li class="doctor-item"><div class="doctor-dot"></div><span>${d}</span></li>`).join('');
+
+  // ── Disparity callout in results if applicable ──────────────────────
+  if (highEth && !document.getElementById('pr-disp-callout')) {
+    const note = document.createElement('div');
+    note.id = 'pr-disp-callout';
+    note.className = 'callout warning';
+    note.style.marginBottom = '16px';
+    note.innerHTML = `<strong>Exposure Disparities — A Note for You</strong>Research consistently documents that Black and Latina women carry higher phthalate body burdens than white women, primarily due to hair and personal care products disproportionately marketed to women of color. The Atlanta ECHO cohort found Black pregnant women's DEP levels were ~3× the national average. This is an environmental justice issue, and it means your actual exposure may be higher than this general estimator reflects. Advocate for yourself with providers.`;
+    $('p-results').insertBefore(note, $('p-results').firstChild.nextSibling);
+  }
+
+  $('p-results').style.display = 'block';
+  initResultCarousels();
+  setTimeout(() => $('p-results').scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+}
+
+// ── CAROUSEL ─────────────────────────────────────────────────────────────
+// ── CAROUSEL ─────────────────────────────────────────────────────────────
+const carouselState = {};
+
+function initCarousel(id) {
+  const el = $(id);
+  if (!el) return;
+  // reset state each time (handles recalculate)
+  const slides = el.querySelectorAll('.carousel-slide');
+  carouselState[id] = { current: 0, total: slides.length };
+  slides.forEach((s, i) => s.classList.toggle('active', i === 0));
+  // build dots using querySelector within container
+  const dotsEl = el.querySelector('.carousel-dots');
+  if (dotsEl) {
+    dotsEl.innerHTML = Array.from({ length: slides.length }, (_, i) =>
+      `<div class="carousel-dot${i === 0 ? ' active' : ''}" onclick="goCarousel('${id}',${i})"></div>`
+    ).join('');
+  }
+  _updateBtns(id);
+}
+
+function _updateBtns(id) {
+  const el = $(id);
+  const s  = carouselState[id];
+  if (!el || !s) return;
+  const btns = el.querySelectorAll('.carousel-btn');
+  if (btns[0]) btns[0].disabled = s.current === 0;
+  if (btns[1]) btns[1].disabled = s.current === s.total - 1;
+}
+
+function moveCarousel(id, dir) {
+  const s = carouselState[id];
+  if (!s) return;
+  goCarousel(id, s.current + dir);
+}
+
+function goCarousel(id, idx) {
+  const s = carouselState[id];
+  if (!s) return;
+  const el     = $(id);
+  const slides = el.querySelectorAll('.carousel-slide');
+  const dots   = el.querySelectorAll('.carousel-dot');
+  slides[s.current].classList.remove('active');
+  if (dots[s.current]) dots[s.current].classList.remove('active');
+  s.current = Math.max(0, Math.min(idx, s.total - 1));
+  slides[s.current].classList.add('active');
+  if (dots[s.current]) dots[s.current].classList.add('active');
+  _updateBtns(id);
+}
+
+function initResultCarousels() {
+  ['limits-carousel'].forEach(initCarousel);
+}
+</script>
+</body>
+</html>
